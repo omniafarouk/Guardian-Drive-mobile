@@ -1,8 +1,6 @@
 import 'package:guardian_drive_mobile/models/health_event.dart';
 import 'package:guardian_drive_mobile/models/location.dart';
 
-import 'incident.dart';
-
 class Alert {
   alertType type;
   List<Location> locations; // latitude and longitude

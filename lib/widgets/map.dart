@@ -33,12 +33,14 @@ class _MapState extends State<Map> {
           urlTemplate:
               'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
           subdomains: ['a', 'b', 'c', 'd'],
+          retinaMode: true,
+
         ),
 
         MarkerLayer(
           markers: [
             Marker(
-              point: LatLng(1.2878, 103.8566),
+              point: LatLng(widget.latitude, widget.longitude),
               width: 70,
               height: 70,
               alignment: Alignment.center,
