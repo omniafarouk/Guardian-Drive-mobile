@@ -13,14 +13,14 @@ class HealthEvent {
   DateTime eventDate;
   double heartRate;
   HeartStatus heartStatus;
-  BodyTempStatus tempStatus;
   double bodyTemp;
+  BodyTempStatus tempStatus;
   HealthEvent({
     required this.visitId,
     required this.eventDate,
     required this.heartRate,
     required this.heartStatus,
-    required this.tempStatus,
     required this.bodyTemp,
+    required this.tempStatus,
   });
 }

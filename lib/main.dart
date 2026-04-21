@@ -5,6 +5,7 @@ import 'package:guardian_drive_mobile/pages/login_page.dart';
 import 'package:guardian_drive_mobile/pages/profile_screen.dart';
 import 'package:guardian_drive_mobile/pages/trip_details_page.dart';
 import 'package:guardian_drive_mobile/pages/trip_list_page.dart';
+import 'package:guardian_drive_mobile/pages/alert_detail_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
         '/alerts': (context) => const AlertListPage(),
         //'/settings': (context) => const SettingsScreen(),
         '/login': (context) => LoginPage(),
-        //'/alert_details': (context) => const AlertDetail(),
+        '/alert_details': (context) => AlertDetail(),
         '/trip_details': (context) => TripDetailsPage(),
       },
     );

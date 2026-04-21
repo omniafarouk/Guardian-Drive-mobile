@@ -1,19 +1,21 @@
 import 'package:guardian_drive_mobile/models/health_event.dart';
 import 'package:guardian_drive_mobile/models/location.dart';
 
+import 'incident.dart';
+
 class Alert {
   alertType type;
   List<Location> locations; // latitude and longitude
   alertStatus status;
   DateTime generatedAt;
-  DateTime? solvedAt;
+  DateTime? solvedAt;  // whole alert solved including towing 
   HealthEvent? healthEvent;
-  DateTime? requestTime;
-  DateTime? completionTime;
+  DateTime? requestTime; // emergency service request time
+  DateTime? completionTime; // ambulance arrival
 
   int alertId;
   int tripId;
-  String? locationName;
+  
   Alert({
     required this.alertId,
     required this.tripId,
@@ -22,11 +24,11 @@ class Alert {
     required this.locations,
     required this.generatedAt,
     this.healthEvent,
-    required this.solvedAt,
+    this.solvedAt,
     this.requestTime,
     this.completionTime,
-    this.locationName,
   });
+
 }
 
 enum alertStatus { ACTIVE, RESOLVED }

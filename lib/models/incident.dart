@@ -1,18 +1,15 @@
 enum incidentDescription {
   Alert_trigger,
-  Parking_request,
-  No_response,
-  Vehicle_control,
   Service_request,
-  Ambulance_Arrival
+  Ambulance_arrival,
+  Alert_solved
 }
+
 Map<incidentDescription, String> incidentMap = {
   incidentDescription.Alert_trigger: 'Alert Triggered',
-  incidentDescription.Parking_request: 'Driver parking request',
-  incidentDescription.No_response: 'No Driver response',
-  incidentDescription.Vehicle_control: 'Initiate vehicle control',
   incidentDescription.Service_request: 'Emergency service request',
-  incidentDescription.Ambulance_Arrival: 'Ambulance Arrival on Scene'
+  incidentDescription.Ambulance_arrival: 'Ambulance Arrival on Scene',
+  incidentDescription.Alert_solved: 'Alert completely solved'
 };
 
 class Incident {
