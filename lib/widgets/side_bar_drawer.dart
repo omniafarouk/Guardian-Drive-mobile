@@ -119,6 +119,7 @@ class _SideBarDrawerState extends State<SideBarDrawer> {
               Navigator.pushNamed(context, '/alerts');
             },
           ),
+          /*      <--- settings menu commented
           ListTile(
             leading: const Icon(Icons.settings_outlined, color: Colors.white),
             title: const Text(
@@ -129,7 +130,7 @@ class _SideBarDrawerState extends State<SideBarDrawer> {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/settings');
             },
-          ),
+          ),*/
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.white),
             title: const Text('Logout', style: TextStyle(color: Colors.white)),
