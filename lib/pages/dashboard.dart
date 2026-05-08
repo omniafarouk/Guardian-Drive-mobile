@@ -130,198 +130,203 @@ class _DashboardState extends State<Dashboard> {
       drawer: const SideBarDrawer(),
 
       body: GradientBackground(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Welcome back\nRowane,",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height,
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Welcome back\nRowane,",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
 
-              SizedBox(height: 20),
+                SizedBox(height: 20),
 
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white.withOpacity(0.08),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          getStatus(),
-                          style: TextStyle(
-                            color: getStatusColor(),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          isConnected ? "Band Connected" : "Disconnected",
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        SizedBox(height: 6),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            "$battery%",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    CircularPercentIndicator(
-                      radius: 55,
-                      lineWidth: 8,
-                      percent: percent.clamp(0.0, 1.0),
-                      animation: true,
-                      animationDuration: 800,
-                      circularStrokeCap: CircularStrokeCap.round,
-                      progressColor: getStatusColor(),
-                      backgroundColor: Colors.white24,
-                      center: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "$bpm",
+                            getStatus(),
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
+                              color: getStatusColor(),
                               fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
                           ),
+                          SizedBox(height: 10),
                           Text(
-                            "BPM",
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
+                            isConnected ? "Band Connected" : "Disconnected",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          SizedBox(height: 6),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              "$battery%",
+                              style: TextStyle(color: Colors.white),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
 
-              SizedBox(height: 30),
-
-              Text(
-                "Ongoing Trip",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              SizedBox(height: 10),
-
-              Container(
-                height: 150,
-                width: double.infinity,
-                child: lat == null || lng == null
-                    ? Center(child: CircularProgressIndicator())
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: FlutterMap(
-                          options: MapOptions(
-                            initialCenter: LatLng(lat!, lng!),
-                            initialZoom: 13,
-                          ),
+                      CircularPercentIndicator(
+                        radius: 55,
+                        lineWidth: 8,
+                        percent: percent.clamp(0.0, 1.0),
+                        animation: true,
+                        animationDuration: 800,
+                        circularStrokeCap: CircularStrokeCap.round,
+                        progressColor: getStatusColor(),
+                        backgroundColor: Colors.white24,
+                        center: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            TileLayer(
-                              urlTemplate:
-                                  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                              subdomains: ['a', 'b', 'c', 'd'],
+                            Text(
+                              "$bpm",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: LatLng(lat!, lng!),
-                                  width: 40,
-                                  height: 40,
-                                  child: Icon(
-                                    Icons.location_pin,
-                                    color: Colors.red,
-                                    size: 40,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              "BPM",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
                       ),
-              ),
-
-              SizedBox(height: 20),
-
-              Text(
-                "Upcoming Trips",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                    ],
+                  ),
                 ),
-              ),
 
-              SizedBox(height: 10),
+                SizedBox(height: 30),
 
-              Column(
-                children: trips.map((trip) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // From + To (left side)
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                Text(
+                  "Ongoing Trip",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height: 10),
+
+                Container(
+                  height: 150,
+                  width: double.infinity,
+                  child: lat == null || lng == null
+                      ? Center(child: CircularProgressIndicator())
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: FlutterMap(
+                            options: MapOptions(
+                              initialCenter: LatLng(lat!, lng!),
+                              initialZoom: 13,
+                            ),
                             children: [
-                              Text(
-                                "From: ${trip.from}",
-                                style: TextStyle(color: Colors.white),
+                              TileLayer(
+                                urlTemplate:
+                                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                                subdomains: ['a', 'b', 'c', 'd'],
                               ),
-                              SizedBox(height: 4),
-                              Text(
-                                "To: ${trip.to}",
-                                style: TextStyle(color: Colors.white),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: LatLng(lat!, lng!),
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(
+                                      Icons.location_pin,
+                                      color: Colors.red,
+                                      size: 40,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ),
+                ),
 
-                        // Date (right side, centered vertically)
-                        Text(
-                          trip.date,
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
+                SizedBox(height: 20),
 
-              SizedBox(height: 20),
-            ],
+                Text(
+                  "Upcoming Trips",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height: 10),
+
+                Column(
+                  children: trips.map((trip) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // From + To (left side)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "From: ${trip.from}",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  "To: ${trip.to}",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Date (right side, centered vertically)
+                          Text(
+                            trip.date,
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+
+                SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

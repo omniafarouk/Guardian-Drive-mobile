@@ -42,7 +42,7 @@ class AlertListItem extends StatelessWidget {
               onPressed: () {
                 Navigator.pushNamed(
                   context,
-                  '/alert_details', 
+                  '/alert-details',
                   arguments: alert.alertId,
                 );
               },

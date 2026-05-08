@@ -3,6 +3,8 @@ import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:intl/intl.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/models/car.dart';
+import '../widgets/map.dart' as MapDrawer;
+import 'package:guardian_drive_mobile/utils/location_helper.dart';
 
 String formatTripDate(DateTime date) {
   return DateFormat("MMM d 'at' h:mm").format(date);
@@ -40,8 +42,10 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
     );
     trip = Trip(
       tripId: 1,
-      startPoint: 'Alex',
-      destPoint: 'cairo',
+      startLatitude: 30.06263,
+      startLongitude: 31.24967,
+      destLatitude: 31.205753,
+      destLongitude: 29.924526,
       startTime: DateTime.now(),
       endTime: DateTime.now(),
       status: tripStatus.COMPLETED,
@@ -105,16 +109,17 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                     ],
                   ),
                   SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      40.0,
-                    ), // Adjust the radius here
-                    child: Image.asset(
-                      './assets/map.png',
-                      width: MediaQuery.of(context).size.width * 0.9,
-                      height: MediaQuery.of(context).size.height * 0.25,
-                      fit: BoxFit
-                          .cover, // Ensures the image fills the rounded area
+                  Container(
+                    height: 200,
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                        40.0,
+                      ),
+                      child: MapDrawer.Map(
+                        trip.startLatitude,
+                        trip.startLongitude,
+                      ),
                     ),
                   ),
                   SizedBox(height: 15),
@@ -132,16 +137,27 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                         Colors.white,
                         formatTripDate(trip.startTime),
                       ),
-                      _buildRow(
+                      _buildRowFuture(
                         Icons.radio_button_on_sharp,
                         Colors.lightBlueAccent,
-                        trip.startPoint,
+                        getLocationName(trip.startLatitude, trip.startLongitude),
                       ),
-                      _buildRow(
+
+                      _buildRowFuture(
                         Icons.radio_button_on_sharp,
                         Colors.greenAccent,
-                        trip.destPoint,
+                        getLocationName(trip.destLatitude, trip.destLongitude),
                       ),
+                      // _buildRow(
+                      //   Icons.radio_button_on_sharp,
+                      //   Colors.lightBlueAccent,
+                      //   trip.startPoint,
+                      // ),
+                      // _buildRow(
+                      //   Icons.radio_button_on_sharp,
+                      //   Colors.greenAccent,
+                      //   trip.destPoint,
+                      // ),
                       if (trip.endTime != null)
                         _buildRow(
                           Icons.check_circle_outlined,
@@ -292,6 +308,42 @@ TableRow _buildRow(IconData icon, Color iconColor, String data) {
           fontWeight: FontWeight.w500,
           color: Colors.white,
         ),
+      ),
+    ],
+  );
+}
+TableRow _buildRowFuture(
+    IconData icon,
+    Color iconColor,
+    Future<String> futureData,
+    ) {
+  return TableRow(
+    children: <Widget>[
+      Icon(icon, size: 23, color: iconColor),
+      SizedBox(width: 20),
+
+      FutureBuilder<String>(
+        future: futureData,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Text(
+              "Loading...",
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.white70,
+              ),
+            );
+          }
+
+          return Text(
+            snapshot.data ?? "Unknown",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          );
+        },
       ),
     ],
   );

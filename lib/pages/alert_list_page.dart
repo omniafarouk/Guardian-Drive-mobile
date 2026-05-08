@@ -6,7 +6,7 @@ import 'package:guardian_drive_mobile/widgets/alert_list_item.dart';
 import 'package:guardian_drive_mobile/widgets/filter_alert.dart';
 import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
-
+import 'package:number_paginator/number_paginator.dart';
 class AlertListPage extends StatefulWidget {
   const AlertListPage({super.key});
 
@@ -164,16 +164,34 @@ class _AlertListPageState extends State<AlertListPage> {
               //     const TextStyle(color: Colors.white),
               //   ),
               // ),
-              SizedBox(height: 20),
+              //SizedBox(height: 5),
               Expanded(
                 child: ListView.separated(
-                  itemCount: 11,
+                  itemCount: 10,
                   itemBuilder: (context, index) {
                     return AlertListItem(alert: alerts[0]);
                   },
                   separatorBuilder: (context, index) => SizedBox(height: 27),
                 ),
               ),
+              NumberPaginator(
+                numberPages: 10,
+                onPageChange: (int index) {
+                  // handle page change...
+                },
+                child: const SizedBox(
+                  height: 48,
+                  child: Row(
+                    children: [
+                      PrevButton(),
+                      Expanded(
+                        child: NumberContent(),
+                      ),
+                      NextButton(),
+                    ],
+                  ),
+                ),
+              )
             ],
           ),
         ),

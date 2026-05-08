@@ -28,8 +28,8 @@ class MyApp extends StatelessWidget {
         '/alerts': (context) => const AlertListPage(),
         //'/settings': (context) => const SettingsScreen(),
         '/login': (context) => LoginPage(),
-        '/alert_details': (context) => AlertDetail(),
-        '/trip_details': (context) => TripDetailsPage(),
+        '/alert-details': (context) => AlertDetail(),
+        '/trip-details': (context) => TripDetailsPage(),
       },
     );
   }

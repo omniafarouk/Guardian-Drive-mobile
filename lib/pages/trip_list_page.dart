@@ -6,7 +6,9 @@ import 'package:guardian_drive_mobile/widgets/trip_list_item.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/models/car.dart';
 import 'package:guardian_drive_mobile/widgets/filter_trip.dart';
-
+import 'package:guardian_drive_mobile/utils/location_helper.dart';
+import '../models/location.dart';
+import 'package:number_paginator/number_paginator.dart';
 class tripListPage extends StatefulWidget {
   const tripListPage({super.key});
 
@@ -29,43 +31,55 @@ class _tripListPageState extends State<tripListPage> {
       status: carStatus.ACTIVE,
       color: 'Red',
     );
+    var location = Location(latitude: 30.06263, longitude: 31.24967);
+
     trips = [
       Trip(
         tripId: 1,
-        startPoint: 'Alex',
-        destPoint: 'cairo',
+        startLatitude: 30.06263,
+        startLongitude: 31.24967,
+        destLatitude: 31.205753,
+        destLongitude: 29.924526,
         startTime: DateTime.now(),
         status: tripStatus.PLANNED,
         car: myCar,
       ),
       Trip(
         tripId: 2,
-        startPoint: 'cairo',
-        destPoint: 'cairo',
+        startLatitude: 30.06263,
+        startLongitude: 31.24967,
+        destLatitude: 31.205753,
+        destLongitude: 29.924526,
         startTime: DateTime.now(),
         status: tripStatus.PLANNED,
         car: myCar,
       ),
       Trip(
         tripId: 3,
-        startPoint: 'Alex',
-        destPoint: 'cairo',
+        startLatitude: 30.06263,
+        startLongitude: 31.24967,
+        destLatitude: 31.205753,
+        destLongitude: 29.924526,
         startTime: DateTime.now(),
         status: tripStatus.ONGOING,
         car: myCar,
       ),
       Trip(
         tripId: 4,
-        startPoint: 'Alex',
-        destPoint: 'cairo',
+        startLatitude: 30.06263,
+        startLongitude: 31.24967,
+        destLatitude: 31.205753,
+        destLongitude: 29.924526,
         startTime: DateTime.now(),
         status: tripStatus.CANCELLED,
         car: myCar,
       ),
       Trip(
         tripId: 5,
-        startPoint: 'Alex',
-        destPoint: 'cairo',
+        startLatitude: 30.06263,
+        startLongitude: 31.24967,
+        destLatitude: 31.205753,
+        destLongitude: 29.924526,
         startTime: DateTime.now(),
         status: tripStatus.COMPLETED,
         car: myCar,
@@ -100,7 +114,7 @@ class _tripListPageState extends State<tripListPage> {
           }
         },
         icon: Icon(Icons.tune, color: Colors.white, size: 35),
-        style: IconButton.styleFrom(backgroundColor: Color(0xFF2935E0)),
+        style: IconButton.styleFrom(backgroundColor: Color(0xFF251C4E)),
       ),
       drawer: const SideBarDrawer(),
       body: GradientBackground(
@@ -108,26 +122,34 @@ class _tripListPageState extends State<tripListPage> {
           margin: EdgeInsets.fromLTRB(15, 25, 15, 15),
           child: Column(
             children: <Widget>[
-              // SearchBar(
-              //   backgroundColor: WidgetStateProperty.all(const Color(0x12FFFFFF)),
-              //   leading: Icon(Icons.search, color: Colors.grey, size: 30),
-              //   hintText: 'Search by ID ...',
-              //   trailing: [FilterMenu()],
-              //   onSubmitted: (value) => runSearch(value),
-              //   textStyle: WidgetStateProperty.all(
-              //     const TextStyle(color: Colors.white),
-              //   ),
-              // ),
-              SizedBox(height: 20),
+             // SizedBox(height: 5),
               Expanded(
                 child: ListView.separated(
-                  itemCount: 9,
+                  itemCount: 8,
                   itemBuilder: (context, index) {
                     return TripListItem(trip: trips[0]);
                   },
                   separatorBuilder: (context, index) => SizedBox(height: 27),
                 ),
               ),
+              NumberPaginator(
+                numberPages: 10,
+                onPageChange: (int index) {
+                  // handle page change...
+                },
+                child: const SizedBox(
+                  height: 48,
+                  child: Row(
+                    children: [
+                      PrevButton(),
+                      Expanded(
+                        child: NumberContent(),
+                      ),
+                      NextButton(),
+                    ],
+                  ),
+                ),
+              )
             ],
           ),
         ),
