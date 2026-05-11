@@ -9,6 +9,7 @@ import 'package:guardian_drive_mobile/widgets/filter_trip.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import '../models/location.dart';
 import 'package:number_paginator/number_paginator.dart';
+
 class tripListPage extends StatefulWidget {
   const tripListPage({super.key});
 
@@ -122,7 +123,7 @@ class _tripListPageState extends State<tripListPage> {
           margin: EdgeInsets.fromLTRB(15, 25, 15, 15),
           child: Column(
             children: <Widget>[
-             // SizedBox(height: 5),
+              // SizedBox(height: 5),
               Expanded(
                 child: ListView.separated(
                   itemCount: 8,
@@ -142,14 +143,12 @@ class _tripListPageState extends State<tripListPage> {
                   child: Row(
                     children: [
                       PrevButton(),
-                      Expanded(
-                        child: NumberContent(),
-                      ),
+                      Expanded(child: NumberContent()),
                       NextButton(),
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),

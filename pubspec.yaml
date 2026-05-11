@@ -39,6 +39,7 @@ dependencies:
   baseflow_plugin_template: ^2.1.2
   location: ^5.0.3
   number_paginator: ^1.1.2
+  flutter_secure_storage: ^9.0.0
   
   flutter:
     sdk: flutter
