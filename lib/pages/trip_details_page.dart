@@ -50,7 +50,6 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       endTime: DateTime.now(),
       status: tripStatus.COMPLETED,
       car: myCar, 
-      plannedStartTime: DateTime.now(),
     );
   }
 

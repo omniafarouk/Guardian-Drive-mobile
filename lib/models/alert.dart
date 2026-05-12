@@ -1,20 +1,21 @@
+import 'package:guardian_drive_mobile/models/car.dart';
 import 'package:guardian_drive_mobile/models/health_event.dart';
 import 'package:guardian_drive_mobile/models/location.dart';
+import 'package:guardian_drive_mobile/models/trip.dart';
 
 class Alert {
-  
   int alertId;
   alertType type;
   alertStatus status;
 
   DateTime generatedAt;
-  DateTime? solvedAt;  // whole alert solved including towing 
+  DateTime? solvedAt; // whole alert solved including towing
 
-  Trip? trip;
+  Car? car;
 
   int triggeredLocationId;
   Location triggeredLocation;
-  
+
   int? stoppedLocationId;
   Location? stoppedLocation;
 
@@ -35,27 +36,36 @@ class Alert {
     this.healthEvent,
     this.requestTime,
     this.completionTime,
+    this.car,
   });
 
-  factory Alert.fromJson(Map<String, dynamic> json){
+  factory Alert.fromJson(Map<String, dynamic> json) {
     return Alert(
       alertId: json['alertId'],
-      type: alertType.values.firstWhere((e)=> e.name == json['type']),
-      status: alertStatus.values.firstWhere((e)=> e.name == json['status']),
+      type: alertType.values.firstWhere((e) => e.name == json['type']),
+      status: alertStatus.values.firstWhere((e) => e.name == json['status']),
       generatedAt: DateTime.parse(json['generatedAt']),
-      completionTime: json['completionTime'] != null ? DateTime.parse(json['completionTime']): null,
-      solvedAt: json['solvedAt'] != null? DateTime.parse(json['solvedAt']): null,
-      tripId: json['tripId'],
+      completionTime: json['completionTime'] != null
+          ? DateTime.parse(json['completionTime'])
+          : null,
+      solvedAt: json['solvedAt'] != null
+          ? DateTime.parse(json['solvedAt'])
+          : null,
       triggeredLocationId: json['triggeredLocationId'],
-      triggeredLocation: Location.fromJson(json['triggeredLocation']), 
+      triggeredLocation: Location.fromJson(json['triggeredLocation']),
       stoppedLocationId: json['stoppedLocationId'],
-      stoppedLocation: json['stoppedLocation'] != null? Location.fromJson(json['stoppedLocation']) : null,
-      healthEvent: json['healthEvent'] != null ? HealthEvent.fromJson(json['healthEvent']): null,
-      trip: json['trip'] != null
-          ? Trip.fromJson(json['trip']) : null,
-      );
+      stoppedLocation: json['stoppedLocation'] != null
+          ? Location.fromJson(json['stoppedLocation'])
+          : null,
+      healthEvent: json['healthEvent'] != null
+          ? HealthEvent.fromJson(json['healthEvent'])
+          : null,
+      car: json['trip'] != null && json['trip']['car'] != null
+          ? Car.fromJson(json['trip']['car'])
+          : null,
+      // trip: json['trip'] != null ? Trip.fromJson(json['trip']) : null,
+    );
   }
-
 }
 
 enum alertStatus { ACTIVE, RESOLVED }

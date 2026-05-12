@@ -14,8 +14,8 @@ class Location {
     return Location(
       locationId: json['locationId'],
       time: DateTime.parse(json['time']),
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      latitude: (json['latitude'] ?? 0).toDouble(),
+      longitude: (json['longitude'] ?? 0).toDouble(),
     );
   }
 }

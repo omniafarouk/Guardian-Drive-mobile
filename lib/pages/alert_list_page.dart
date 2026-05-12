@@ -121,7 +121,7 @@ class _AlertListPageState extends State<AlertListPage> {
     loadAlerts();
   }
   Future<void> loadAlerts() async{
-    alerts = await AlertApiService.getAlerts("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3ODQ1NDUwNSwiZXhwIjoxNzc4NTQwOTA1fQ.HUc_7PQJ14HmTCWxYxsjkEhPCs1Ho8yRIVu8t4Zulno");
+    alerts = await AlertApiService.getAlerts("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjAzMDYsImV4cCI6MTc3ODcwNjcwNn0.2uy3K0fVG2QsH55yQGH-z6rvdke8KohGrF-XtDV1w6g");
     setState(() {
       isLoading = false;
     });
