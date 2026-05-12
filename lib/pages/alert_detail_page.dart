@@ -53,8 +53,8 @@ class _AlertDetailState extends State<AlertDetail> {
 
   Future<void> loadAddress(Alert alert) async {
     address = await getLocationName(
-      alert.locations.last.latitude,
-      alert.locations.last.longitude,
+      alert.triggeredLocation.latitude,
+      alert.triggeredLocation.longitude,
     );
   }
 
@@ -63,7 +63,7 @@ class _AlertDetailState extends State<AlertDetail> {
     super.initState();
     // API ALERT request
 
-    alertFuture = AlertApiService().getAlertById(widget.alertId);
+    // alertFuture = AlertApiService.getAlertById(widget.alertId) as Future<Alert>?;
   }
 
   getResponseTime(Alert alert) {
@@ -72,13 +72,19 @@ class _AlertDetailState extends State<AlertDetail> {
 
   @override
   Widget build(BuildContext context) {
+    final int alertId = ModalRoute.of(context)!.settings.arguments as int;
+    alertFuture = AlertApiService.getAlertById(alertId, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg1NDU0NTcsImV4cCI6MTc3ODYzMTg1N30.z0OSCo5tW0zDBoh8DU7QiNe-_SaLONFbTIX1-Zr12X4") as Future<Alert>?;
     return FutureBuilder(
       future: alertFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if(snapshot.connectionState == ConnectionState.waiting){
           return const Center(child: CircularProgressIndicator());
-        }
 
+        }
+        if (snapshot.hasError) {
+          return Text(snapshot.error.toString());
+        }
+        // ADD NULL CASE
         final alert = snapshot.data!;
         loadAddress(alert);
         incidentTimeline = buildIncidentTimeline(alert);
@@ -141,8 +147,8 @@ class _AlertDetailState extends State<AlertDetail> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(50),
                           child: MapDrawer.Map(
-                            alert.locations.last.latitude,
-                            alert.locations.last.longitude,
+                            alert.stoppedLocation!.latitude,
+                            alert.stoppedLocation!.longitude,
                           ),
                         ),
                       ),
