@@ -87,7 +87,7 @@ class TripListItem extends StatelessWidget {
         Expanded(
           flex: 2,
           child: Text(
-            formatTripDate(trip.startTime!),
+            formatTripDate(trip.startTime),
             style: _textStyle,
           ),
         ),

@@ -1,7 +1,6 @@
 import 'package:guardian_drive_mobile/models/car.dart';
 import 'package:guardian_drive_mobile/models/health_event.dart';
 import 'package:guardian_drive_mobile/models/location.dart';
-import 'package:guardian_drive_mobile/models/trip.dart';
 
 class Alert {
   int alertId;

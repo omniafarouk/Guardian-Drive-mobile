@@ -1,6 +1,3 @@
-import 'package:guardian_drive_mobile/models/alert.dart';
-import 'package:guardian_drive_mobile/services/alert_api_service.dart';
-
 // Alert alert1 = AlertApiService.getAlertById(4) as Alert;
 //   Alert(
 //   alertId: 1,
