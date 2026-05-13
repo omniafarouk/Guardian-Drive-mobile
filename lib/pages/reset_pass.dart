@@ -1,9 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/pages/login_page.dart';
+import 'package:guardian_drive_mobile/services/auth_service.dart';
 
 class ResetPass extends StatefulWidget {
+  final String token;
+
+  const ResetPass({super.key, required this.token});
+
   @override
-  _ResetPassState createState() => _ResetPassState();
+  State<ResetPass> createState() => _ResetPassState();
 }
 
 class _ResetPassState extends State<ResetPass> {
@@ -18,6 +24,7 @@ class _ResetPassState extends State<ResetPass> {
   }
 
   bool isPressed = false;
+  //final TextEditingController passController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -153,15 +160,71 @@ class _ResetPassState extends State<ResetPass> {
                             vertical: 15,
                           ),
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           setState(() {
                             isPressed = true;
                           });
 
                           if (_formKey.currentState!.validate()) {
-                            print("password reset successful");
+                            setState(() {
+                              isPressed = true;
+                            });
+
+                            try {
+                              final result = await AuthService.resetPass(
+                                token: widget.token,
+                                newPassword: passwordController.text,
+                              );
+
+                              final message =
+                                  result["message"] ??
+                                  "Password reset successful";
+
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text(message)));
+
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => LoginPage()),
+                              );
+                              if (!result["success"]) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Invalid or expired token. Please request a new password reset.",
+                                    ),
+                                  ),
+                                );
+
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => LoginPage(),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Invalid or expired token. Please request a new password reset.",
+                                  ),
+                                ),
+                              );
+
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => LoginPage()),
+                              );
+                            } finally {
+                              setState(() {
+                                isPressed = false;
+                              });
+                            }
                           }
                         },
+
                         child: Text(
                           "Reset Password",
                           style: TextStyle(color: Colors.white),

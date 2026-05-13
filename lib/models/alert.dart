@@ -6,14 +6,14 @@ class Alert {
   List<Location> locations; // latitude and longitude
   alertStatus status;
   DateTime generatedAt;
-  DateTime? solvedAt;  // whole alert solved including towing 
+  DateTime? solvedAt; // whole alert solved including towing
   HealthEvent? healthEvent;
   DateTime? requestTime; // emergency service request time
   DateTime? completionTime; // ambulance arrival
 
   int alertId;
   int tripId;
-  
+
   Alert({
     required this.alertId,
     required this.tripId,
@@ -26,7 +26,6 @@ class Alert {
     this.requestTime,
     this.completionTime,
   });
-
 }
 
 enum alertStatus { ACTIVE, RESOLVED }

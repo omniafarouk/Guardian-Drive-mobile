@@ -22,7 +22,7 @@ class Trip {
     required this.startLatitude,
     required this.startLongitude,
     required this.destLatitude,
-    required this.destLongitude
+    required this.destLongitude,
   });
 }
 
