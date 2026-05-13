@@ -9,6 +9,8 @@ import 'package:guardian_drive_mobile/widgets/filter_trip.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import '../models/location.dart';
 import 'package:number_paginator/number_paginator.dart';
+import 'package:guardian_drive_mobile/services/trip_service.dart';
+
 class tripListPage extends StatefulWidget {
   const tripListPage({super.key});
 
@@ -17,78 +19,56 @@ class tripListPage extends StatefulWidget {
 }
 
 class _tripListPageState extends State<tripListPage> {
-  void runSearch(String id) {
-    print('searching for $id');
-  }
+  int totalPages = 1;
+  int currentPage = 1;
+  String? selectedStatus;
+  DateTime? selectedFromDate;
+  DateTime? selectedToDate;
+  String selectedOrderBy = "desc";
+  bool isLoading = false;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    myCar = Car(
-      engineId: '123A',
-      plateNo: '123 ABB',
-      status: carStatus.ACTIVE,
-      color: 'Red',
-    );
-    var location = Location(latitude: 30.06263, longitude: 31.24967);
+    getData();
+  }
 
-    trips = [
-      Trip(
-        tripId: 1,
-        startLatitude: 30.06263,
-        startLongitude: 31.24967,
-        destLatitude: 31.205753,
-        destLongitude: 29.924526,
-        startTime: DateTime.now(),
-        status: tripStatus.PLANNED,
-        car: myCar,
-      ),
-      Trip(
-        tripId: 2,
-        startLatitude: 30.06263,
-        startLongitude: 31.24967,
-        destLatitude: 31.205753,
-        destLongitude: 29.924526,
-        startTime: DateTime.now(),
-        status: tripStatus.PLANNED,
-        car: myCar,
-      ),
-      Trip(
-        tripId: 3,
-        startLatitude: 30.06263,
-        startLongitude: 31.24967,
-        destLatitude: 31.205753,
-        destLongitude: 29.924526,
-        startTime: DateTime.now(),
-        status: tripStatus.ONGOING,
-        car: myCar,
-      ),
-      Trip(
-        tripId: 4,
-        startLatitude: 30.06263,
-        startLongitude: 31.24967,
-        destLatitude: 31.205753,
-        destLongitude: 29.924526,
-        startTime: DateTime.now(),
-        status: tripStatus.CANCELLED,
-        car: myCar,
-      ),
-      Trip(
-        tripId: 5,
-        startLatitude: 30.06263,
-        startLongitude: 31.24967,
-        destLatitude: 31.205753,
-        destLongitude: 29.924526,
-        startTime: DateTime.now(),
-        status: tripStatus.COMPLETED,
-        car: myCar,
-      ),
-    ];
+  void getData({
+    int page = 1,
+    int limit = 10,
+    String? status,
+    DateTime? fromStartDate,
+    DateTime? toStartDate,
+    String orderBy = "asc",
+  }) async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final response = await TripService().getTrips(
+        page: page,
+        limit: limit,
+        status: status,
+        fromStartDate: fromStartDate,
+        toStartDate: toStartDate,
+        orderBy: orderBy,
+      );
+
+      setState(() {
+        trips = response.trips;
+        totalPages = response.totalPages;
+        currentPage = response.page;
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   late Car myCar;
-  late List<Trip> trips;
+  List<Trip> trips = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,18 +79,23 @@ class _tripListPageState extends State<tripListPage> {
           final result = await showFilterBottomSheet(context);
 
           if (result != null) {
-            print(result["dateRange"]);
-            print(result["city"]);
-            print(result["type"]);
+            final range = result["range"] as DateTimeRange?;
+            final status = result["status"] as TripStatus?;
+            final sort = result["sort"] as String;
 
-            // later:
-            // call backend with these filters
-            //         {
-            //       range: DateTimeRange,
-            //   city: String,
-            //   type: alertType,
-            //   sort: "asc" | "desc"
-            // }
+            //selectedStatus = statuses.isNotEmpty ? statuses.first.name : null;
+            selectedStatus=status?.name;
+            selectedFromDate = range?.start;
+            selectedToDate = range?.end;
+            selectedOrderBy = sort;
+
+            getData(
+              page: 1,
+              orderBy: selectedOrderBy,
+              fromStartDate: selectedFromDate,
+              toStartDate: selectedToDate,
+              status: selectedStatus,
+            );
           }
         },
         icon: Icon(Icons.tune, color: Colors.white, size: 35),
@@ -122,34 +107,42 @@ class _tripListPageState extends State<tripListPage> {
           margin: EdgeInsets.fromLTRB(15, 25, 15, 15),
           child: Column(
             children: <Widget>[
-             // SizedBox(height: 5),
+              // SizedBox(height: 5),
               Expanded(
-                child: ListView.separated(
-                  itemCount: 8,
-                  itemBuilder: (context, index) {
-                    return TripListItem(trip: trips[0]);
-                  },
-                  separatorBuilder: (context, index) => SizedBox(height: 27),
-                ),
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.separated(
+                        itemCount: trips.length,
+                        itemBuilder: (context, index) {
+                          return TripListItem(trip: trips[index]);
+                        },
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: 27),
+                      ),
               ),
               NumberPaginator(
-                numberPages: 10,
+                numberPages: totalPages == 0 ? 1 : totalPages,
+                initialPage: totalPages == 0 ? 0 : currentPage - 1,
                 onPageChange: (int index) {
-                  // handle page change...
+                  getData(
+                    page: index + 1,
+                    status: selectedStatus,
+                    fromStartDate: selectedFromDate,
+                    toStartDate: selectedToDate,
+                    orderBy: selectedOrderBy,
+                  );
                 },
                 child: const SizedBox(
                   height: 48,
                   child: Row(
                     children: [
                       PrevButton(),
-                      Expanded(
-                        child: NumberContent(),
-                      ),
+                      Expanded(child: NumberContent()),
                       NextButton(),
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),

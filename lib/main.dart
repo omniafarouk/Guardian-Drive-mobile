@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Guardian Drive',
-      initialRoute: '/home', // the first screen that opens
+      initialRoute: '/trips', // the first screen that opens
       // can be initialRoute or home: const HomeScreen(), or as '/' in routes
       routes: {
         '/home': (context) => Dashboard(),
