@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:guardian_drive_mobile/services/api_client_service.dart'
+    as api_service;
 import 'package:http/http.dart' as http;
 import '../models/auth.dart';
 
@@ -6,13 +8,13 @@ class AuthService {
   // Replace with your actual backend IP
   // If testing on real device, use your PC's local IP e.g. 192.168.1.5
   // If testing on emulator, use 10.0.2.2 (emulator's alias for localhost)
-  //static const String baseUrl = 'http:localhost:3000';
-  static const String baseUrl = "http://10.0.2.2:3000";
+  //static const String baseUrl = "http://10.0.2.2:3000";
+  static const String baseUrl = api_service.ApiClient.baseUrl;
 
   Future<LoginResponse> login(String email, String password) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/json'},
+      Uri.parse('$baseUrl/api/auth/login'),
+      headers: await api_service.ApiClient.headers(),
       body: jsonEncode({'email': email, 'password': password}),
     );
 
@@ -20,6 +22,7 @@ class AuthService {
       return LoginResponse.fromJson(jsonDecode(response.body));
     } else {
       final error = jsonDecode(response.body);
+      print("auth service error:" + error);
       // send this to login page to show it
       throw Exception(
         error['message'] ?? 'Login failed',
@@ -47,7 +50,7 @@ class AuthService {
 
     final res = await http.post(
       url,
-      headers: {"Content-Type": "application/json"},
+      headers: await api_service.ApiClient.headers(),
       body: jsonEncode({"token": token}),
     );
 
@@ -68,7 +71,7 @@ class AuthService {
 
     final res = await http.post(
       url,
-      headers: {"Content-Type": "application/json"},
+      headers: await api_service.ApiClient.headers(),
       body: jsonEncode({"token": token, "newPassword": newPassword}),
     );
 
@@ -89,7 +92,7 @@ class AuthService {
 
     final res = await http.post(
       url,
-      headers: {"Content-Type": "application/json"},
+      headers: await api_service.ApiClient.headers(),
       body: jsonEncode({"token": token}),
     );
 

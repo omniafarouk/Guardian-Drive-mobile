@@ -54,6 +54,7 @@ class _LoginPageState extends State<LoginPage> {
       );
       // will remove login from stack completely
     } catch (e) {
+      print('LOGIN ERROR: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

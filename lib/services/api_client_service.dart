@@ -1,12 +1,10 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 
 class ApiClient {
   static const String baseUrl = 'http://localhost:3000';
 
   // Builds headers with token automatically
-  static Future<Map<String, String>> _headers() async {
+  static Future<Map<String, String>> headers() async {
     final token = await StorageService.getToken();
     return {
       'Content-Type': 'application/json',
@@ -14,6 +12,7 @@ class ApiClient {
     };
   }
 
+  /*
   // Use this for all GET requests
   static Future<http.Response> get(String endpoint) async {
     return await http.get(
@@ -53,4 +52,5 @@ class ApiClient {
       headers: await _headers(),
     );
   }
+  */
 }

@@ -3,19 +3,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:http/http.dart' as http;
+import 'api_client_service.dart' as api_service;
 
 class AlertApiService {
-  static const baseUrl = "http://192.168.1.10:3000/api/";
+  static const baseUrl = api_service.ApiClient.baseUrl;
 
   static Future<List<Alert>> getAlerts(String token) async {
     var url = Uri.parse("${baseUrl}alerts");
     try {
       final res = await http.get(
         url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
+        headers: await api_service.ApiClient.headers(),
       );
 
       if (res.statusCode == 200) {
@@ -41,10 +39,7 @@ class AlertApiService {
     try {
       final res = await http.get(
         url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
+        headers: await api_service.ApiClient.headers(),
       );
 
       if (res.statusCode == 200) {
