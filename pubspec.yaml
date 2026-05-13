@@ -40,9 +40,11 @@ dependencies:
   location: ^5.0.3
   number_paginator: ^1.1.2
   flutter_secure_storage: ^9.0.0
+ # app_links: ^6.4.0
   
   flutter:
     sdk: flutter
+  app_links: ^7.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

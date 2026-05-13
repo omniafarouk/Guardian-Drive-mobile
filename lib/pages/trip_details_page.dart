@@ -49,7 +49,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       startTime: DateTime.now(),
       endTime: DateTime.now(),
       status: tripStatus.COMPLETED,
-      car: myCar,
+      car: myCar, 
     );
   }
 

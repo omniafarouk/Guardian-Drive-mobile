@@ -3,7 +3,11 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+<<<<<<< HEAD
   flutter_secure_storage_windows
+=======
+  app_links
+>>>>>>> 9e5acd308a34305deef445040d0b5a4199af460a
   geolocator_windows
   url_launcher_windows
 )

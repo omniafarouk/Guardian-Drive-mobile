@@ -32,10 +32,10 @@ class _tripListPageState extends State<tripListPage> {
       status: carStatus.ACTIVE,
       color: 'Red',
     );
-    var location = Location(latitude: 30.06263, longitude: 31.24967);
+    var location = Location(latitude: 30.06263, longitude: 31.24967, time: DateTime(2026), locationId: 1);
 
     trips = [
-      Trip(
+      /*Trip(
         tripId: 1,
         startLatitude: 30.06263,
         startLongitude: 31.24967,
@@ -84,7 +84,7 @@ class _tripListPageState extends State<tripListPage> {
         startTime: DateTime.now(),
         status: tripStatus.COMPLETED,
         car: myCar,
-      ),
+      ),*/
     ];
   }
 

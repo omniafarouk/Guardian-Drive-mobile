@@ -3,7 +3,11 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+<<<<<<< HEAD
   flutter_secure_storage_linux
+=======
+  gtk
+>>>>>>> 9e5acd308a34305deef445040d0b5a4199af460a
   url_launcher_linux
 )
 
