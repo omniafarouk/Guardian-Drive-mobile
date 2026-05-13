@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
+import 'package:guardian_drive_mobile/models/user.dart';
+import 'package:guardian_drive_mobile/services/user_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,154 +13,139 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class ProfileScreenState extends State<ProfileScreen> {
-  String? imageUrl = null;
-  // 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRXu0L3tItmhTVzyOr0PUJFluxXK8sJi41xvw&s'; // Example image URL, can be null for default avatar
-  String name = 'Omnia Farouk';
-  String email = 'omnia@example.com';
-  String phone = '+1234567890';
-  String license = 'D1234567';
-  String allergies = 'None';
-  String medicalConditions = 'None';
-  int avgHeartRate = 72;
-  int avgTemperature = 98;
-  int avgBloodPressure = 120;
-  String bloodType = 'O+';
+  UserProfile? user;
+
+  get SharedPreferences => null;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProfile();
+  }
+
+  Future<void> fetchProfile() async {
+    try {
+      //final prefs = await SharedPreferences.getInstance();
+
+      //final token = prefs.getString('token');
+      //final userId = prefs.getInt('userId');
+      final token =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjgzNTEsImV4cCI6MTc3ODcxNDc1MX0.VBbQ38vF5STkLkS5Flv80NTEQA2U4NVMnbWofqba6k0";
+      final userId = 3;
+      /* if (token == null || userId == null)
+       return;*/
+
+      final fetchedUser = await UserService.getUserById();
+
+      setState(() {
+        user = fetchedUser;
+      });
+    } catch (e) {
+      print("Error fetching user: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF060B21),
-      appBar: CustomAppBar(title: "Profile"),
-      drawer:
-          const SideBarDrawer(), // add sidebar, but note: that would remove the back button
-      body: GradientBackground(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 40, 0, 10),
+      backgroundColor: const Color(0xFF060B21),
+      appBar: const CustomAppBar(title: "Profile"),
+      drawer: const SideBarDrawer(),
+
+      body: user == null
+          ? const Center(child: CircularProgressIndicator())
+          : GradientBackground(
+              child: SingleChildScrollView(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Stack(
-                      children: [
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Color(0xEE323658), // ← stroke color
-                              width: 2, // ← stroke thickness
-                            ),
-                          ),
-                          child: ClipOval(
-                            child: imageUrl != null
-                                ? Image.network(
-                                    imageUrl!,
-                                    width: 100,
-                                    height: 100,
-                                    fit: BoxFit.cover,
-                                    // shows default icon if image fails to load
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return _defaultAvatar(); // ← case 1: URL exists but FAILED to load
-                                    },
-                                    // shows loading spinner while image loads
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                          if (loadingProgress == null)
-                                            return child;
-                                          return const CircularProgressIndicator(
-                                            strokeWidth: 3,
-                                            color: Colors.white,
-                                          );
-                                        },
-                                  )
-                                : _defaultAvatar(), // ← case 2: URL is null, show default avatar
-                          ),
+                    const SizedBox(height: 40),
+
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey.shade200,
+                        border: Border.all(
+                          color: const Color(0xEE323658),
+                          width: 2,
                         ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Color(0xEE323658), // ← badge background
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color:
-                                    Colors.white, // ← white ring around badge
-                                width: 2,
-                              ),
-                            ),
-                            child: IconButton(
-                              iconSize: 18,
-                              icon: const Icon(Icons.edit_outlined, size: 25),
-                              color: Colors.white,
-                              onPressed: () {
-                                print("Edit avatar pressed!");
-                                // TODO: open image picker <--------------
-                              },
-                            ),
-                          ),
+                      ),
+                      child: const ClipOval(
+                        child: Icon(
+                          Icons.person_outline,
+                          size: 80,
+                          color: Color(0xFF141931),
                         ),
-                      ],
+                      ),
                     ),
-                    SizedBox(height: 10),
-                    Text(
-                      name,
+
+                    const SizedBox(height: 10),
+
+                    const Text(
+                      "User Profile",
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade200,
+                        color: Colors.white,
                       ),
                     ),
+
+                    const SizedBox(height: 30),
+
                     Padding(
-                      padding: EdgeInsets.all(40),
+                      padding: const EdgeInsets.all(40),
                       child: Column(
                         children: [
-                          _buildField(label: "Email", value: email),
-                          _buildField(label: "Phone", value: phone),
-                          _buildField(label: "License", value: license),
-                          _buildField(label: "Allergies", value: allergies),
+                          _buildField(label: "Email", value: user!.email),
+                          _buildField(label: "Phone", value: user!.phone),
+                          _buildField(label: "License", value: user!.license),
+                          _buildField(
+                            label: "Medications",
+                            value: user!.medications.toString() ?? '',
+                          ),
                           _buildField(
                             label: "Medical Conditions",
-                            value: medicalConditions,
+                            value: user!.medicalConditions.toString() ?? '',
                           ),
+
+                          const SizedBox(height: 10),
+
                           Row(
                             children: [
                               Expanded(
-                                /*Without Expanded, each _buildField tries to be as wide as it wants inside the Row — Flutter can't resolve that and throws an overflow exception.
-                                Expanded tells each child "take exactly your fair share of the available width" — so two Expanded widgets in a Row each get exactly 50%.*/
                                 child: _buildField(
-                                  label: "Average Heart Rate",
-                                  value: avgHeartRate.toString(),
+                                  label: "Heart Rate",
+                                  value: user?.avgHeartRate.toString() ?? '',
                                 ),
                               ),
                               const SizedBox(width: 20),
                               Expanded(
                                 child: _buildField(
-                                  label: "Average Temperature",
-                                  value: avgTemperature.toString(),
+                                  label: "Temperature",
+                                  value: user?.avgTemperature.toString() ?? '',
                                 ),
                               ),
                             ],
                           ),
+
+                          const SizedBox(height: 10),
+
                           Row(
                             children: [
                               Expanded(
                                 child: _buildField(
-                                  label: "Average Blood Pressure",
-                                  value: avgBloodPressure.toString(),
+                                  label: "SpO2",
+                                  value: user?.avgSpo2.toString() ?? '',
                                 ),
                               ),
                               const SizedBox(width: 20),
-                              Expanded(
+                              /*Expanded(
                                 child: _buildField(
                                   label: "Blood Type",
-                                  value: bloodType,
+                                  //value: user!.bloodType,
                                 ),
-                              ),
+                              ),*/
                             ],
                           ),
                         ],
@@ -167,15 +154,8 @@ class ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
-  }
-
-  Icon _defaultAvatar() {
-    return const Icon(Icons.person_outline, size: 80, color: Color(0xFF141931));
   }
 
   Widget _buildField({required String label, required String value}) {
@@ -184,22 +164,24 @@ class ProfileScreenState extends State<ProfileScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(color: Colors.grey.shade200, fontSize: 13),
+          style: TextStyle(color: Colors.grey.shade300, fontSize: 13),
         ),
         const SizedBox(height: 6),
+
         TextFormField(
           initialValue: value,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
           readOnly: true,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
           decoration: const InputDecoration(
+            filled: true,
+            fillColor: Color(0xEE323658),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(8)),
             ),
-            fillColor: Color(0xEE323658),
-            filled: true,
           ),
         ),
-        SizedBox(height: 10),
+
+        const SizedBox(height: 10),
       ],
     );
   }

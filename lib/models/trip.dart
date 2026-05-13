@@ -63,9 +63,10 @@ class Trip {
     "fleetManagerId": fleetManagerId,
   };
 }
-
 enum TripStatus { PLANNED, ONGOING, CANCELLED, COMPLETED }
 
 TripStatus tripStatusFromString(String status) {
   return TripStatus.values.firstWhere((e) => e.name == status);
 }
+
+

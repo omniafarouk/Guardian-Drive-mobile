@@ -14,22 +14,26 @@ class AlertListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
       future: getLocationName(
-        alert.locations[0].latitude,
-        alert.locations[0].longitude,
+        alert.triggeredLocation.latitude,
+        alert.triggeredLocation.longitude,
       ),
       builder: (context, snapshot) {
         final locationName = snapshot.data ?? "Loading...";
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
-            Text(
-              locationName,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
+            Expanded(
+              child: Text(
+                locationName,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
               ),
             ),
+            SizedBox(width: 10),
             Text(
               formatTripDate(alert.generatedAt),
               style: TextStyle(

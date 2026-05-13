@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/models/role.dart';
+import 'package:guardian_drive_mobile/services/auth_service.dart';
+import 'package:guardian_drive_mobile/services/storage_service.dart';
 import 'forget_pass.dart'; // make sure this file exists
 import 'dashboard.dart'; // make sure this file exists
 
@@ -13,7 +16,54 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _authService = AuthService();
+
   bool isPressed = false;
+
+  Future<void> _handleLogin() async {
+    // Validates all form fields at once
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      final result = await _authService.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      // result has login response
+
+      // ToDo : ensure if role not driver , don't enter
+      if (result.role != Role.driver.toString()) {
+        throw Exception("Invalid User");
+      }
+
+      // Save token + role + name securely
+      await StorageService.saveSession(
+        token: result.token,
+        id: result.id,
+        username: '${result.fName} ${result.lName}',
+      );
+
+      if (!mounted) return; // widget might be gone after await
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Dashboard()),
+      );
+      // will remove login from stack completely
+    } catch (e) {
+      print('LOGIN ERROR: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(height: 5),
 
                     TextFormField(
+                      controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(
@@ -114,6 +165,7 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(height: 5),
 
                     TextFormField(
+                      controller: _passwordController,
                       obscureText: true,
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(
@@ -159,17 +211,7 @@ class _LoginPageState extends State<LoginPage> {
                         setState(() {
                           isPressed = true;
                         });
-
-                        if (_formKey.currentState!.validate()) {
-                          print("Login Successful");
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Dashboard(),
-                            ),
-                          );
-                        }
+                        _handleLogin();
                       },
 
                       child: Text(

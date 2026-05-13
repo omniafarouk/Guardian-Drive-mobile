@@ -140,7 +140,7 @@ class _DashboardState extends State<Dashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Welcome back\nRowane,",
+                  "Welcome back,",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 26,

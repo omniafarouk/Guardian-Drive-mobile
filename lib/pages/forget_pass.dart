@@ -1,6 +1,8 @@
+//import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:guardian_drive_mobile/pages/reset_pass.dart';
+//import 'package:guardian_drive_mobile/pages/reset_pass.dart';
+import 'package:guardian_drive_mobile/services/auth_service.dart';
 
 class ForgetPass extends StatefulWidget {
   @override
@@ -10,6 +12,12 @@ class ForgetPass extends StatefulWidget {
 class _ForgetPassState extends State<ForgetPass> {
   final _formKey = GlobalKey<FormState>();
   bool isPressed = false;
+  final TextEditingController emailController = TextEditingController();
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +79,8 @@ class _ForgetPassState extends State<ForgetPass> {
                       SizedBox(height: 5),
                       SizedBox(
                         child: TextFormField(
+                          controller: emailController,
+
                           keyboardType: TextInputType.emailAddress,
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
@@ -114,19 +124,43 @@ class _ForgetPassState extends State<ForgetPass> {
                             vertical: 15,
                           ),
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           setState(() {
                             isPressed = true;
                           });
                           if (_formKey.currentState!.validate()) {
-                            print("email sent");
+                            //print(emailController.text);
+                            setState(() {
+                              isPressed = false;
+                            });
+                            try {
+                              final msg = await AuthService.forgetPass(
+                                emailController.text.trim(),
+                              );
 
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ResetPass(),
-                              ),
-                            );
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text(msg)));
+                              print(emailController.text);
+
+                              /* Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ResetPass(),
+                                ),
+                              );*/
+                            } catch (error) {
+                              setState(() {
+                                isPressed = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            } finally {
+                              setState(() {
+                                isPressed = false;
+                              });
+                            }
                           }
                         },
                         child: Text(
