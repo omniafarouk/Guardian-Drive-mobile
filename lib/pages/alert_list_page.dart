@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/services/alert_api_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/models/location.dart';
@@ -23,8 +24,8 @@ class _AlertListPageState extends State<AlertListPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    location = Location(latitude: 30.06263, longitude: 31.24967);
-    alerts = [
+    //location = Location(latitude: 30.06263, longitude: 31.24967);
+    /*alerts = [
       Alert(
         alertId: 2,
         tripId: 1,
@@ -116,11 +117,20 @@ class _AlertListPageState extends State<AlertListPage> {
         requestTime: null,
         completionTime: null,
       ),
-    ];
+    ];*/
+    loadAlerts();
   }
-
+  Future<void> loadAlerts() async{
+    alerts = await AlertApiService.getAlerts("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjAzMDYsImV4cCI6MTc3ODcwNjcwNn0.2uy3K0fVG2QsH55yQGH-z6rvdke8KohGrF-XtDV1w6g");
+    setState(() {
+      isLoading = false;
+    });
+    print(alerts);
+  }
+  
   late Location location;
-  late List<Alert> alerts;
+  late List<Alert> alerts = [];
+  bool isLoading = true;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -166,10 +176,10 @@ class _AlertListPageState extends State<AlertListPage> {
               // ),
               //SizedBox(height: 5),
               Expanded(
-                child: ListView.separated(
-                  itemCount: 10,
+                child: isLoading ?  Center(child: CircularProgressIndicator()): ListView.separated(
+                  itemCount: alerts.length,
                   itemBuilder: (context, index) {
-                    return AlertListItem(alert: alerts[0]);
+                    return AlertListItem(alert: alerts[index]);
                   },
                   separatorBuilder: (context, index) => SizedBox(height: 27),
                 ),
