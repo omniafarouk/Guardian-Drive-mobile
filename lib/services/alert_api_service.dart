@@ -9,7 +9,7 @@ class AlertApiService {
   static const baseUrl = api_service.ApiClient.baseUrl;
 
   static Future<List<Alert>> getAlerts(String token) async {
-    var url = Uri.parse("${baseUrl}alerts");
+    var url = Uri.parse("${baseUrl}/api/alerts");
     try {
       final res = await http.get(
         url,
@@ -33,15 +33,14 @@ class AlertApiService {
     }
   }
 
-  // GET alert by id
+  // GET alert by alertId
   static Future<Alert?> getAlertById(int id, String token) async {
-    var url = Uri.parse("${baseUrl}alerts/${id}");
+    var url = Uri.parse("${baseUrl}/api/alerts/${id}");
     try {
       final res = await http.get(
         url,
         headers: await api_service.ApiClient.headers(),
       );
-
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
         final alert = body["data"];
@@ -50,6 +49,7 @@ class AlertApiService {
         throw Exception(res.body);
       }
     } catch (e) {
+      print('getAlertById error: $e'); // add this
       return null;
     }
   }

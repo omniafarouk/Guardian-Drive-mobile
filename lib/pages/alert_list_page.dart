@@ -8,6 +8,7 @@ import 'package:guardian_drive_mobile/widgets/filter_alert.dart';
 import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:number_paginator/number_paginator.dart';
+
 class AlertListPage extends StatefulWidget {
   const AlertListPage({super.key});
 
@@ -120,14 +121,25 @@ class _AlertListPageState extends State<AlertListPage> {
     ];*/
     loadAlerts();
   }
-  Future<void> loadAlerts() async{
-    alerts = await AlertApiService.getAlerts("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjAzMDYsImV4cCI6MTc3ODcwNjcwNn0.2uy3K0fVG2QsH55yQGH-z6rvdke8KohGrF-XtDV1w6g");
-    setState(() {
-      isLoading = false;
-    });
-    print(alerts);
+
+  Future<void> loadAlerts() async {
+    try {
+      final result = await AlertApiService.getAlerts(
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjAzMDYsImV4cCI6MTc3ODcwNjcwNn0.2uy3K0fVG2QsH55yQGH-z6rvdke8KohGrF-XtDV1w6g",
+      );
+      print('Alerts loaded: ${result.length}'); // how many came back?
+      setState(() {
+        alerts = result; // ← move this inside setState
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false; // ← also stop loading on error
+      });
+      print('loadAlerts error: $e');
+    }
   }
-  
+
   late Location location;
   late List<Alert> alerts = [];
   bool isLoading = true;
@@ -176,13 +188,16 @@ class _AlertListPageState extends State<AlertListPage> {
               // ),
               //SizedBox(height: 5),
               Expanded(
-                child: isLoading ?  Center(child: CircularProgressIndicator()): ListView.separated(
-                  itemCount: alerts.length,
-                  itemBuilder: (context, index) {
-                    return AlertListItem(alert: alerts[index]);
-                  },
-                  separatorBuilder: (context, index) => SizedBox(height: 27),
-                ),
+                child: isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : ListView.separated(
+                        itemCount: alerts.length,
+                        itemBuilder: (context, index) {
+                          return AlertListItem(alert: alerts[index]);
+                        },
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: 27),
+                      ),
               ),
               NumberPaginator(
                 numberPages: 10,
@@ -194,14 +209,12 @@ class _AlertListPageState extends State<AlertListPage> {
                   child: Row(
                     children: [
                       PrevButton(),
-                      Expanded(
-                        child: NumberContent(),
-                      ),
+                      Expanded(child: NumberContent()),
                       NextButton(),
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),

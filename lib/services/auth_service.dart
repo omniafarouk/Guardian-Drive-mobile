@@ -35,7 +35,7 @@ class AuthService {
 
     final res = await http.post(
       url,
-      headers: {"Content-Type": "application/json"},
+      headers: await api_service.ApiClient.headers(),
       body: jsonEncode({"email": email}),
     );
     print(res.body);

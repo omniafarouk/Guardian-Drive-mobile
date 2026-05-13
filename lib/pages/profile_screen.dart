@@ -35,7 +35,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       /* if (token == null || userId == null)
        return;*/
 
-      final fetchedUser = await UserService.getUserById(token, userId);
+      final fetchedUser = await UserService.getUserById();
 
       setState(() {
         user = fetchedUser;
