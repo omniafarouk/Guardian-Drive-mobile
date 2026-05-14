@@ -25,7 +25,7 @@ class Car {
     engineId: json["engineId"],
     plateNo: json["plateNo"],
     color: json["color"],
-    status: carStatus.values.firstWhere((e) => e.name == json['status']),
+    status: json['status'],
     trips: List<Trip>.from(json["trips"].map((x) => Trip.fromJson(x))),
   );
 

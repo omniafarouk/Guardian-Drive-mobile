@@ -7,6 +7,7 @@ import 'api_client_service.dart' as api_service;
 
 class AlertApiService {
   static const baseUrl = api_service.ApiClient.baseUrl;
+  //static const String baseUrl = "http://10.0.2.2:3000";
 
   static Future<List<Alert>> getAlerts(String token) async {
     var url = Uri.parse("${baseUrl}/api/alerts");

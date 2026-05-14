@@ -10,6 +10,7 @@ class AuthService {
   // If testing on emulator, use 10.0.2.2 (emulator's alias for localhost)
   //static const String baseUrl = "http://10.0.2.2:3000";
   static const String baseUrl = api_service.ApiClient.baseUrl;
+  //static const String baseUrl = "http://10.0.2.2:3000";
 
   Future<LoginResponse> login(String email, String password) async {
     final response = await http.post(
