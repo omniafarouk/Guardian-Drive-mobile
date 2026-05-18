@@ -75,7 +75,7 @@ class _AlertDetailState extends State<AlertDetail> {
     final int alertId = ModalRoute.of(context)!.settings.arguments as int;
     alertFuture = AlertApiService.getAlertById(
       alertId,
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjAzMDYsImV4cCI6MTc3ODcwNjcwNn0.2uy3K0fVG2QsH55yQGH-z6rvdke8KohGrF-XtDV1w6g",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3ODYyODM2MywiZXhwIjoxNzc4NzE0NzYzfQ.rfbLVWAtSlhNayxV1z9Yq1KFP5BsGr-tQo1tOMTrOGA",
     );
     return FutureBuilder<Alert?>(
       future: alertFuture,
@@ -310,7 +310,7 @@ class _AlertDetailState extends State<AlertDetail> {
                                             ),
                                           ),
                                           Text(
-                                            '${alert.healthEvent?.heartStatus?.name ?? "TEMP_STATUS"}',
+                                            '${alert.healthEvent?.heartStatus?.name}',
                                             style: TextStyle(
                                               color: getHeartStatusColor(alert),
                                               fontSize: 16,
@@ -363,7 +363,7 @@ class _AlertDetailState extends State<AlertDetail> {
                                         ),
                                       ),
                                       Text(
-                                        '${alert.healthEvent?.tempStatus?.name ?? "TEMP_STATUS"}',
+                                        '${alert.healthEvent?.tempStatus?.name}',
                                         style: TextStyle(
                                           color: getHTempStatusColor(alert),
                                           fontSize: 16,
