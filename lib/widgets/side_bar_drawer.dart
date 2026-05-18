@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/services/storage_service.dart';
 
 class SideBarDrawer extends StatefulWidget {
   const SideBarDrawer({super.key});
@@ -8,9 +9,15 @@ class SideBarDrawer extends StatefulWidget {
 }
 
 class _SideBarDrawerState extends State<SideBarDrawer> {
-  var driverName = 'Omnia Farouk'; // Use camelCase for variables
-  String? imageUrl =
-      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRXu0L3tItmhTVzyOr0PUJFluxXK8sJi41xvw&s'; // Example image URL, can be null for default avatar
+  String? imageUrl;
+  String? driverName; // start as null, fill it after async loads
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -29,7 +36,7 @@ class _SideBarDrawerState extends State<SideBarDrawer> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        driverName,
+                        driverName ?? '',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -148,6 +155,13 @@ class _SideBarDrawerState extends State<SideBarDrawer> {
     return const Icon(Icons.person_outline, size: 40, color: Color(0xFF141931));
   }
 
+  Future<void> _loadUser() async {
+    final name = await StorageService.getUsername();
+    setState(() {
+      driverName = name; // triggers rebuild once value is loaded
+    });
+  }
+
   Future<void> _logout() async {
     final navigator = Navigator.of(context);
     // this is used because below Navigator.pushNamedAndRemove(context, '/login', (route) => false) and context navigation here causes problems with async and await functionalities
@@ -172,6 +186,7 @@ class _SideBarDrawerState extends State<SideBarDrawer> {
 
     if (confirmed == true) {
       // Navigate to login screen and clear stack
+      await StorageService.clearSession();
       navigator.pushNamedAndRemoveUntil('/login', (route) => false);
     }
   }

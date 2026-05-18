@@ -8,6 +8,7 @@ import 'package:guardian_drive_mobile/widgets/filter_alert.dart';
 import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:number_paginator/number_paginator.dart';
+
 class AlertListPage extends StatefulWidget {
   const AlertListPage({super.key});
 
@@ -122,13 +123,21 @@ class _AlertListPageState extends State<AlertListPage> {
   }
 
   Future<void> loadAlerts() async {
-    alerts = await AlertApiService.getAlerts(
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3ODYyODM2MywiZXhwIjoxNzc4NzE0NzYzfQ.rfbLVWAtSlhNayxV1z9Yq1KFP5BsGr-tQo1tOMTrOGA"
+    try {
+      final result = await AlertApiService.getAlerts(
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjAzMDYsImV4cCI6MTc3ODcwNjcwNn0.2uy3K0fVG2QsH55yQGH-z6rvdke8KohGrF-XtDV1w6g",
       );
-    setState(() {
-      isLoading = false;
-    });
-    print(alerts);
+      print('Alerts loaded: ${result.length}'); // how many came back?
+      setState(() {
+        alerts = result; // ← move this inside setState
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false; // ← also stop loading on error
+      });
+      print('loadAlerts error: $e');
+    }
   }
 
   late Location location;

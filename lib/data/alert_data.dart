@@ -1,5 +1,8 @@
-// Alert alert1 = AlertApiService.getAlertById(4) as Alert;
-//   Alert(
+// import 'package:guardian_drive_mobile/models/alert.dart';
+// import 'package:guardian_drive_mobile/models/health_event.dart';
+// import 'package:guardian_drive_mobile/models/location.dart' as Location;
+//
+// Alert alert1 = Alert(
 //   alertId: 1,
 //   tripId: 1,
 //   type: alertType.SOS,

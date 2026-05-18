@@ -3,22 +3,24 @@ import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:intl/intl.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/models/car.dart';
+import '../services/trip_service.dart';
+import '../services/car_service.dart';
 import '../widgets/map.dart' as MapDrawer;
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 
-String formatTripDate(DateTime date) {
-  return DateFormat("MMM d 'at' h:mm").format(date);
+String _formatTripDate(DateTime date) {
+  return DateFormat("MMM d, yyyy 'at' h:mm a").format(date);
 }
 
-Color getStatusColor(tripStatus status) {
+Color getStatusColor(TripStatus status) {
   switch (status) {
-    case tripStatus.PLANNED:
+    case TripStatus.PLANNED:
       return Colors.orange;
-    case tripStatus.ONGOING:
+    case TripStatus.ONGOING:
       return Colors.green;
-    case tripStatus.CANCELLED:
+    case TripStatus.CANCELLED:
       return Colors.red;
-    case tripStatus.COMPLETED:
+    case TripStatus.COMPLETED:
       return Colors.blue;
   }
 }
@@ -31,36 +33,98 @@ class TripDetailsPage extends StatefulWidget {
 }
 
 class _TripDetailsPageState extends State<TripDetailsPage> {
+  Trip? trip;
+  Car? car;
+  bool tripIsLoading = true;
+  bool carIsLoading = true;
+  bool buttonActionLoading = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final tripId = ModalRoute.of(context)!.settings.arguments as int;
+    _fetchTrip(tripId);
+  }
+
+  void _fetchTrip(int tripId) async {
+    setState(() {
+      tripIsLoading = true;
+    });
+    try {
+      final response = await TripService().getTripById(tripId);
+      setState(() {
+        trip = response;
+      });
+      if (trip!.engineId != null) {
+        _fetchCar(trip!.engineId!);
+      }
+    } finally {
+      setState(() {
+        tripIsLoading = false;
+      });
+    }
+  }
+
+  void _fetchCar(String engineId) async {
+    setState(() {
+      carIsLoading = true;
+    });
+    try {
+      final response = await CarService().getCarById(engineId);
+      setState(() {
+        car = response;
+      });
+    } finally {
+      setState(() {
+        carIsLoading = false;
+      });
+    }
+  }
+  Future<void> _startTrip() async{
+    if (trip==null) return;
+    setState(() {
+      buttonActionLoading=true;
+    });
+    try{
+      final updatedTrip = await TripService().patchTrip(trip!.tripId,
+        TripStatus.ONGOING);
+      setState(() {
+        trip = updatedTrip;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Trip started successfully'),
+        ),
+      );
+
+    }catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+    } finally {
+      setState(() {
+        buttonActionLoading = false;
+      });
+    }
+  }
   @override
   void initState() {
     super.initState();
-    myCar = Car(
-      engineId: '123A',
-      plateNo: '123 ABS',
-      status: carStatus.ACTIVE,
-      color: 'Red',
-    );
-    trip = Trip(
-      tripId: 1,
-      startLatitude: 30.06263,
-      startLongitude: 31.24967,
-      destLatitude: 31.205753,
-      destLongitude: 29.924526,
-      startTime: DateTime.now(),
-      endTime: DateTime.now(),
-      status: tripStatus.COMPLETED,
-      car: myCar, 
-    );
   }
-
-  late Trip trip;
-  late Car myCar;
   @override
   Widget build(BuildContext context) {
+    if (tripIsLoading || trip == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF060B21),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     bool canStartTrip =
-        trip.status == tripStatus.PLANNED &&
-        DateTime.now().isAfter(trip.startTime);
-    //final int tripId = ModalRoute.of(context)!.settings.arguments as int;
+        trip!.status == TripStatus.PLANNED &&
+        DateTime.now().isAfter(trip!.plannedStartTime);
     return Scaffold(
       backgroundColor: Color(0xFF060B21),
       appBar: AppBar(
@@ -75,7 +139,6 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
           ),
         ),
       ),
-      // drawer: const SideBarDrawer(),
       body: GradientBackground(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -91,7 +154,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       Text(
-                        'Trip #${trip.tripId} - ',
+                        'Trip #${trip!.tripId} - ',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -99,11 +162,11 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                         ),
                       ),
                       Text(
-                        trip.status.name,
+                        trip!.status.name,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: getStatusColor(trip.status),
+                          color: getStatusColor(trip!.status),
                         ),
                       ),
                     ],
@@ -113,67 +176,77 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                     height: 200,
                     width: MediaQuery.of(context).size.width * 0.9,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(
-                        40.0,
-                      ),
+                      borderRadius: BorderRadius.circular(40.0),
                       child: MapDrawer.Map(
-                        trip.startLatitude,
-                        trip.startLongitude,
+                        trip!.startLatitude,
+                        trip!.startLongitude,
                       ),
                     ),
                   ),
                   SizedBox(height: 15),
 
-                  Table(
-                    columnWidths: const {
-                      0: IntrinsicColumnWidth(), // icon column (tight)
-                      1: FixedColumnWidth(20),
-                      2: IntrinsicColumnWidth(), // text column (tight)
-                    },
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    children: [
-                      _buildRow(
-                        Icons.watch_later_outlined,
-                        Colors.white,
-                        formatTripDate(trip.startTime),
-                      ),
-                      _buildRowFuture(
-                        Icons.radio_button_on_sharp,
-                        Colors.lightBlueAccent,
-                        getLocationName(trip.startLatitude, trip.startLongitude),
-                      ),
-
-                      _buildRowFuture(
-                        Icons.radio_button_on_sharp,
-                        Colors.greenAccent,
-                        getLocationName(trip.destLatitude, trip.destLongitude),
-                      ),
-                      // _buildRow(
-                      //   Icons.radio_button_on_sharp,
-                      //   Colors.lightBlueAccent,
-                      //   trip.startPoint,
-                      // ),
-                      // _buildRow(
-                      //   Icons.radio_button_on_sharp,
-                      //   Colors.greenAccent,
-                      //   trip.destPoint,
-                      // ),
-                      if (trip.endTime != null)
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.7,
+                    child: Table(
+                      columnWidths: const {
+                        0: IntrinsicColumnWidth(), // icon column (tight)
+                        1: FixedColumnWidth(20),
+                        2: IntrinsicColumnWidth(), // text column (tight)
+                      },
+                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      children: [
                         _buildRow(
-                          Icons.check_circle_outlined,
+                          Icons.watch_later_outlined,
                           Colors.white,
-                          formatTripDate(trip.endTime!),
+                          //change to add actual startTime
+                          _formatTripDate(trip!.plannedStartTime),
                         ),
-                    ],
+                        _buildRowFuture(
+                          Icons.radio_button_on_sharp,
+                          Colors.lightBlueAccent,
+                          getLocationName(
+                            trip!.startLatitude,
+                            trip!.startLongitude,
+                          ),
+                        ),
+
+                        _buildRowFuture(
+                          Icons.radio_button_on_sharp,
+                          Colors.greenAccent,
+                          getLocationName(
+                            trip!.destLatitude,
+                            trip!.destLongitude,
+                          ),
+                        ),
+                        // _buildRow(
+                        //   Icons.radio_button_on_sharp,
+                        //   Colors.lightBlueAccent,
+                        //   trip.startPoint,
+                        // ),
+                        // _buildRow(
+                        //   Icons.radio_button_on_sharp,
+                        //   Colors.greenAccent,
+                        //   trip.destPoint,
+                        // ),
+                        if (trip!.endTime != null)
+                          _buildRow(
+                            Icons.check_circle_outlined,
+                            Colors.white,
+                            _formatTripDate(trip!.endTime!),
+                          ),
+                      ],
+                    ),
                   ),
                   SizedBox(height: 15),
-
-                  _VehicleCard(trip: trip),
+                  _showVehicle(car, carIsLoading),
+                  //   _VehicleCard(car: car!),
                   SizedBox(height: 15),
-
+// start trip button
                   canStartTrip
                       ? ElevatedButton(
+
                           onPressed: () {
+                            buttonActionLoading? null:_startTrip();
                             print('start trip');
                           },
                           style: ElevatedButton.styleFrom(
@@ -206,10 +279,25 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
   }
 }
 
-class _VehicleCard extends StatelessWidget {
-  const _VehicleCard({required this.trip});
+Widget _showVehicle(Car? car, bool carIsLoading) {
+  //final Car car;
+  // final bool carIsLoading;
+  // const _showVehicle({required this.car, required this.carIsLoading});
+  if (car == null) {
+    return const SizedBox.shrink();
+  }
+  if (carIsLoading) {
+    return const CircularProgressIndicator();
+  } else {
+    return _VehicleCard(car: car);
+  }
+}
 
-  final Trip trip;
+class _VehicleCard extends StatelessWidget {
+  const _VehicleCard({required this.car});
+
+  //final Trip trip;
+  final Car car;
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +351,7 @@ class _VehicleCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    trip.car.plateNo,
+                    car.plateNo,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -279,7 +367,7 @@ class _VehicleCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    trip.car.color,
+                    car.color,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -312,11 +400,12 @@ TableRow _buildRow(IconData icon, Color iconColor, String data) {
     ],
   );
 }
+
 TableRow _buildRowFuture(
-    IconData icon,
-    Color iconColor,
-    Future<String> futureData,
-    ) {
+  IconData icon,
+  Color iconColor,
+  Future<String> futureData,
+) {
   return TableRow(
     children: <Widget>[
       Icon(icon, size: 23, color: iconColor),
@@ -328,10 +417,7 @@ TableRow _buildRowFuture(
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Text(
               "Loading...",
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.white70,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.white70),
             );
           }
 

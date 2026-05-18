@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-enum TripStatus { planned, ongoing, cancelled, completed }
+import '../models/trip.dart';
+
+//enum TripStatus { planned, ongoing, cancelled, completed }
 
 final List<String> locations = ["Alexandria", "Cairo", "Giza"];
 
@@ -9,8 +11,8 @@ Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
   String? fromLocation;
   String? toLocation;
   String sortOrder = "desc";
-  List<TripStatus> selectedStatuses = [];
-
+  //List<TripStatus> selectedStatuses = [];
+  TripStatus? selectedStatus;
   return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
     isScrollControlled: true,
@@ -54,57 +56,62 @@ Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
                       },
                     ),
                   ),
-
-                  _SectionCard(
-                    title: "From Location",
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: fromLocation,
-                      hint: const Text("Select From"),
-                      items: locations
-                          .map(
-                            (e) => DropdownMenuItem(value: e, child: Text(e)),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() => fromLocation = value);
-                      },
-                    ),
-                  ),
-
-                  _SectionCard(
-                    title: "To Location",
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: toLocation,
-                      hint: const Text("Select To"),
-                      items: locations
-                          .map(
-                            (e) => DropdownMenuItem(value: e, child: Text(e)),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() => toLocation = value);
-                      },
-                    ),
-                  ),
+                  //
+                  // _SectionCard(
+                  //   title: "From Location",
+                  //   child: DropdownButton<String>(
+                  //     isExpanded: true,
+                  //     value: fromLocation,
+                  //     hint: const Text("Select From"),
+                  //     items: locations
+                  //         .map(
+                  //           (e) => DropdownMenuItem(value: e, child: Text(e)),
+                  //         )
+                  //         .toList(),
+                  //     onChanged: (value) {
+                  //       setState(() => fromLocation = value);
+                  //     },
+                  //   ),
+                  // ),
+                  //
+                  // _SectionCard(
+                  //   title: "To Location",
+                  //   child: DropdownButton<String>(
+                  //     isExpanded: true,
+                  //     value: toLocation,
+                  //     hint: const Text("Select To"),
+                  //     items: locations
+                  //         .map(
+                  //           (e) => DropdownMenuItem(value: e, child: Text(e)),
+                  //         )
+                  //         .toList(),
+                  //     onChanged: (value) {
+                  //       setState(() => toLocation = value);
+                  //     },
+                  //   ),
+                  // ),
 
                   _SectionCard(
                     title: "Trip Status",
                     child: Wrap(
                       spacing: 8,
                       children: TripStatus.values.map((status) {
-                        final isSelected = selectedStatuses.contains(status);
-                        return FilterChip(
+                        //final isSelected = selectedStatuses.contains(status);
+                        final isSelected = selectedStatus == status;
+
+                        //filterChip -> mult
+                        return ChoiceChip(
                           label: Text(status.name),
                           selected: isSelected,
                           onSelected: (val) {
                             setState(() {
-                              if (val) {
-                                selectedStatuses.add(status);
-                              } else {
-                                selectedStatuses.remove(status);
-                              }
+                              // if (val) {
+                              //   selectedStatuses.add(status);
+                              // } else {
+                              //   selectedStatuses.remove(status);
+                              // }
+                              selectedStatus = val ? status : null;
+
                             });
                           },
                         );
@@ -141,12 +148,12 @@ Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
                           "range": selectedRange,
                           "fromLocation": fromLocation,
                           "toLocation": toLocation,
-                          "statuses": selectedStatuses,
+                          "status": selectedStatus,
                           "sort": sortOrder,
                         });
                       },
                       child: const Text("Apply Filters"),
-                    ),
+                    )
                   ),
 
                   const SizedBox(height: 10),
@@ -159,7 +166,8 @@ Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
                           selectedRange = null;
                           fromLocation = null;
                           toLocation = null;
-                          selectedStatuses.clear();
+                         // selectedStatuses.clear();
+                          selectedStatus=null;
                           sortOrder = "desc";
                         });
                       },

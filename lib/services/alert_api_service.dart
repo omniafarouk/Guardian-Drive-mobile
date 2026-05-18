@@ -3,19 +3,18 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:http/http.dart' as http;
+import 'api_client_service.dart' as api_service;
 
 class AlertApiService {
-  static const baseUrl = "http://192.168.1.10:3000/api/";
+  static const baseUrl = api_service.ApiClient.baseUrl;
+  //static const String baseUrl = "http://10.0.2.2:3000";
 
   static Future<List<Alert>> getAlerts(String token) async {
-    var url = Uri.parse("${baseUrl}alerts");
+    var url = Uri.parse("${baseUrl}/api/alerts");
     try {
       final res = await http.get(
         url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
+        headers: await api_service.ApiClient.headers(),
       );
 
       if (res.statusCode == 200) {
@@ -35,18 +34,14 @@ class AlertApiService {
     }
   }
 
-  // GET alert by id
+  // GET alert by alertId
   static Future<Alert?> getAlertById(int id, String token) async {
-    var url = Uri.parse("${baseUrl}alerts/${id}");
+    var url = Uri.parse("${baseUrl}/api/alerts/${id}");
     try {
       final res = await http.get(
         url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
+        headers: await api_service.ApiClient.headers(),
       );
-
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
         final alert = body["data"];
@@ -55,6 +50,7 @@ class AlertApiService {
         throw Exception(res.body);
       }
     } catch (e) {
+      print('getAlertById error: $e'); // add this
       return null;
     }
   }
