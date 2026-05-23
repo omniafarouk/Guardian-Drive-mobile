@@ -3,11 +3,15 @@ import 'package:guardian_drive_mobile/models/alert.dart';
 
 final List<String> locations = ["Alexandria", "Cairo", "Giza"];
 
-Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
-  DateTimeRange? selectedRange;
-  String? selectedCity;
-  alertType? selectedType;
-  String sortOrder = "desc";
+Future<Map<String, dynamic>?> showFilterBottomSheet(
+  BuildContext context, {
+  DateTimeRange? initialRange,
+  alertType? initialType,
+  String initialSortOrder = "desc",
+}) {
+  DateTimeRange? selectedRange = initialRange;
+  alertType? selectedType = initialType;
+  String sortOrder = initialSortOrder;
 
   return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
@@ -62,24 +66,6 @@ Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
 
                   const SizedBox(height: 16),
 
-                  // ================= CITY =================
-                  const Text("City", style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 8),
-
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: selectedCity,
-                    hint: const Text("Select City"),
-                    items: locations
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() => selectedCity = value);
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
                   // ================= TYPE =================
                   const Text(
                     "Alert Type",
@@ -115,7 +101,8 @@ Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
                   RadioListTile<String>(
                     title: const Text("Newest first"),
                     value: "desc",
-                    groupValue: sortOrder,
+                    groupValue:
+                        sortOrder, // tells flutter which radio button is currently selected (checked) -> Flutter asks: "Which one should I highlight" --> tje answer comes from -> groupVlaue: sortOrder
                     onChanged: (value) {
                       setState(() => sortOrder = value!);
                     },
@@ -137,9 +124,10 @@ Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
+                        // pop() -> remove the current screen (or madal) from the screen stack (It closes the bottom sheet)
                         Navigator.pop(context, {
+                          // returns data back to the previous screen (The value being sent back)
                           "range": selectedRange,
-                          "city": selectedCity,
                           "type": selectedType,
                           "sort": sortOrder,
                         });
@@ -155,11 +143,10 @@ Future<Map<String, dynamic>?> showFilterBottomSheet(BuildContext context) {
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: () {
-                        setState(() {
-                          selectedRange = null;
-                          selectedCity = null;
-                          selectedType = null;
-                          sortOrder = "desc";
+                        Navigator.pop(context, {
+                          "range": null,
+                          "type": null,
+                          "sort": "desc",
                         });
                       },
                       child: const Text("Reset"),

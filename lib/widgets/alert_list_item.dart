@@ -3,8 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 
-String formatTripDate(DateTime date) {
-  return DateFormat("MMM d 'at' h:mm").format(date);
+String formatAlertDate(DateTime date) {
+  return DateFormat("MMM d, yyyy 'at' h:mm").format(date);
 }
 
 class AlertListItem extends StatelessWidget {
@@ -35,7 +35,7 @@ class AlertListItem extends StatelessWidget {
             ),
             SizedBox(width: 10),
             Text(
-              formatTripDate(alert.generatedAt),
+              formatAlertDate(alert.generatedAt),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,

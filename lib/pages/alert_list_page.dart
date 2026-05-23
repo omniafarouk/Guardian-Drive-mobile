@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:guardian_drive_mobile/services/alert_api_service.dart';
+import 'package:guardian_drive_mobile/services/alert_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/models/location.dart';
@@ -17,119 +17,46 @@ class AlertListPage extends StatefulWidget {
 }
 
 class _AlertListPageState extends State<AlertListPage> {
+  alertType? selectedType;
+  DateTimeRange? selectedRange;
+  String selectedOrderBy = "desc";
+  late Location location;
+  late List<Alert> alerts = [];
+  bool isLoading = true;
+  int currentPage = 1;
+  int totalPages = 1;
+
   void runSearch(String id) {
     print('searching for $id');
   }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    //location = Location(latitude: 30.06263, longitude: 31.24967);
-    /*alerts = [
-      Alert(
-        alertId: 2,
-        tripId: 1,
-        status: alertStatus.ACTIVE,
-        generatedAt: DateTime.now(),
-        locations: [location],
-        solvedAt: DateTime.now(),
-        type: alertType.HEALTH_ABNORMAL,
-
-        healthEvent: null,
-        requestTime: null,
-        completionTime: null,
-      ),
-      Alert(
-        alertId: 2,
-        tripId: 1,
-        status: alertStatus.ACTIVE,
-        generatedAt: DateTime.now(),
-        locations: [location],
-        solvedAt: DateTime.now(),
-        type: alertType.HEALTH_ABNORMAL,
-
-        healthEvent: null,
-        requestTime: null,
-        completionTime: null,
-      ),
-      Alert(
-        alertId: 2,
-        tripId: 1,
-        status: alertStatus.ACTIVE,
-        generatedAt: DateTime.now(),
-        locations: [location],
-        solvedAt: DateTime.now(),
-        type: alertType.HEALTH_ABNORMAL,
-
-        healthEvent: null,
-        requestTime: null,
-        completionTime: null,
-      ),
-      Alert(
-        alertId: 2,
-        tripId: 1,
-        status: alertStatus.ACTIVE,
-        generatedAt: DateTime.now(),
-        locations: [location],
-        solvedAt: DateTime.now(),
-        type: alertType.HEALTH_ABNORMAL,
-
-        healthEvent: null,
-        requestTime: null,
-        completionTime: null,
-      ),
-      Alert(
-        alertId: 2,
-        tripId: 1,
-        status: alertStatus.ACTIVE,
-        generatedAt: DateTime.now(),
-        locations: [location],
-        solvedAt: DateTime.now(),
-        type: alertType.HEALTH_ABNORMAL,
-
-        healthEvent: null,
-        requestTime: null,
-        completionTime: null,
-      ),
-      Alert(
-        alertId: 2,
-        tripId: 1,
-        status: alertStatus.ACTIVE,
-        generatedAt: DateTime.now(),
-        locations: [location],
-        solvedAt: DateTime.now(),
-        type: alertType.HEALTH_ABNORMAL,
-
-        healthEvent: null,
-        requestTime: null,
-        completionTime: null,
-      ),
-      Alert(
-        alertId: 2,
-        tripId: 1,
-        status: alertStatus.ACTIVE,
-        generatedAt: DateTime.now(),
-        locations: [location],
-        solvedAt: DateTime.now(),
-        type: alertType.HEALTH_ABNORMAL,
-
-        healthEvent: null,
-        requestTime: null,
-        completionTime: null,
-      ),
-    ];*/
     loadAlerts();
   }
 
-  Future<void> loadAlerts() async {
+  Future<void> loadAlerts({
+    int page = 1,
+    int limit = 15,
+    String orderBy = "desc",
+    alertType? type,
+    DateTime? from,
+    DateTime? to,
+  }) async {
     try {
-      final result = await AlertApiService.getAlerts(
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjAzMDYsImV4cCI6MTc3ODcwNjcwNn0.2uy3K0fVG2QsH55yQGH-z6rvdke8KohGrF-XtDV1w6g",
+      final response = await AlertApiService.getAlerts(
+        page: page,
+        limit: limit,
+        orderBy: orderBy,
+        type: type,
+        from: from,
+        to: to,
       );
-      print('Alerts loaded: ${result.length}'); // how many came back?
+      print('Alerts loaded: ${response.alerts.length}'); // how many came back?
       setState(() {
-        alerts = result; // ← move this inside setState
+        alerts = response.alerts;
+        totalPages = response.totalPages;
         isLoading = false;
       });
     } catch (e) {
@@ -140,9 +67,6 @@ class _AlertListPageState extends State<AlertListPage> {
     }
   }
 
-  late Location location;
-  late List<Alert> alerts = [];
-  bool isLoading = true;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -151,45 +75,57 @@ class _AlertListPageState extends State<AlertListPage> {
       appBar: CustomAppBar(title: 'Alerts'),
       floatingActionButton: IconButton.filled(
         onPressed: () async {
-          final result = await showFilterBottomSheet(context);
+          final result = await showFilterBottomSheet(
+            context,
+            initialRange: selectedRange,
+            initialType: selectedType,
+            initialSortOrder: selectedOrderBy,
+          );
 
           if (result != null) {
             print(result["dateRange"]);
             print(result["city"]);
             print(result["type"]);
-
-            // later:
-            // call backend with these filters
-            //         {
-            //       range: DateTimeRange,
-            //   city: String,
-            //   type: alertType,
-            //   sort: "asc" | "desc"
-            // }
+            final range = result["range"] as DateTimeRange?;
+            final type = result["type"] as alertType?;
+            final sort = result["sort"] as String;
+            selectedRange = range;
+            selectedType = type;
+            selectedOrderBy = sort;
+            loadAlerts(
+              page: 1,
+              orderBy: selectedOrderBy,
+              from: selectedRange?.start,
+              to: selectedRange?.end,
+              type: selectedType,
+            );
+            setState(() {
+              currentPage = 1;
+            });
           }
         },
         icon: Icon(Icons.tune, color: Colors.white, size: 35),
-        style: IconButton.styleFrom(backgroundColor: Color(0xFF2935E0)),
+        style: IconButton.styleFrom(backgroundColor: Color(0xFF251C4E)),
       ),
       body: GradientBackground(
         child: Container(
           margin: EdgeInsets.fromLTRB(15, 25, 15, 15),
           child: Column(
             children: <Widget>[
-              // SearchBar(
-              //   backgroundColor: WidgetStateProperty.all(const Color(0x12FFFFFF)),
-              //   leading: Icon(Icons.search, color: Colors.grey, size: 30),
-              //   hintText: 'Search by ID ...',
-              //   trailing: [FilterMenu()],
-              //   onSubmitted: (value) => runSearch(value),
-              //   textStyle: WidgetStateProperty.all(
-              //     const TextStyle(color: Colors.white),
-              //   ),
-              // ),
-              //SizedBox(height: 5),
               Expanded(
                 child: isLoading
                     ? Center(child: CircularProgressIndicator())
+                    : alerts.isEmpty
+                    ? Center(
+                        child: Text(
+                          "No alerts detected!",
+                          style: TextStyle(
+                            fontSize: 25,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
                     : ListView.separated(
                         itemCount: alerts.length,
                         itemBuilder: (context, index) {
@@ -200,9 +136,22 @@ class _AlertListPageState extends State<AlertListPage> {
                       ),
               ),
               NumberPaginator(
-                numberPages: 10,
+                key: ValueKey(currentPage),
+                numberPages: totalPages == 0 ? 1 : totalPages,
+                initialPage: totalPages == 0 ? 0 : currentPage - 1,
                 onPageChange: (int index) {
-                  // handle page change...
+                  setState(() {
+                    currentPage = index + 1;
+                    print("current page: $currentPage");
+                  });
+                  print("user selected page $index");
+                  loadAlerts(
+                    page: index + 1,
+                    orderBy: selectedOrderBy,
+                    from: selectedRange?.start,
+                    to: selectedRange?.end,
+                    type: selectedType,
+                  );
                 },
                 child: const SizedBox(
                   height: 48,
@@ -221,14 +170,4 @@ class _AlertListPageState extends State<AlertListPage> {
       ),
     );
   }
-
-  // void _showButtomSheet(BuildContext context) {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return Container(
-  //           child: Column(mainAxisSize:MainAxisSize.min,children: [Text('nnnn')]));
-  //     },
-  //   );
-  // }
 }
