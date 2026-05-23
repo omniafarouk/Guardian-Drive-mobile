@@ -34,8 +34,8 @@ class Alert {
     this.stoppedLocation,
     this.healthEvent,
     this.requestTime,
-    this.car,
     this.completionTime,
+    this.car,
   });
 
   factory Alert.fromJson(Map<String, dynamic> json) {
@@ -44,6 +44,9 @@ class Alert {
       type: alertType.values.firstWhere((e) => e.name == json['type']),
       status: alertStatus.values.firstWhere((e) => e.name == json['status']),
       generatedAt: DateTime.parse(json['generatedAt']),
+      completionTime: json['completionTime'] != null
+          ? DateTime.parse(json['completionTime'])
+          : null,
       solvedAt: json['solvedAt'] != null
           ? DateTime.parse(json['solvedAt'])
           : null,
@@ -59,15 +62,11 @@ class Alert {
       car: json['trip'] != null && json['trip']['car'] != null
           ? Car.fromJson(json['trip']['car'])
           : null,
-      completionTime:
-          json['emergencyServiceRequest'] != null &&
-              json['emergencyServiceRequest']['completionTime'] != null
-          ? DateTime.parse(json['emergencyServiceRequest']['completionTime'])
-          : null,
+      // trip: json['trip'] != null ? Trip.fromJson(json['trip']) : null,
     );
   }
 }
 
 enum alertStatus { ACTIVE, RESOLVED }
 
-enum alertType { HEALTH_ABNORMAL, SOS }
+enum alertType { HEALTH_ABNORMAL, SOS, VEHICLE_EMERGENCY }
