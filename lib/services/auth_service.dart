@@ -83,6 +83,8 @@ class AuthService {
 
     return {
       "success": res.statusCode == 200,
+      "statusCode": res.statusCode,
+
       "message": data["message"] ?? "Something went wrong",
     };
   }

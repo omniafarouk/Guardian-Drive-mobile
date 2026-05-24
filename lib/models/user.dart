@@ -7,6 +7,7 @@ class UserProfile {
   final int avgHeartRate;
   final double avgTemperature;
   final int avgSpo2;
+  final int? wearableBand;
   //final String bloodType;
 
   UserProfile({
@@ -18,6 +19,7 @@ class UserProfile {
     required this.avgHeartRate,
     required this.avgTemperature,
     required this.avgSpo2,
+    required this.wearableBand,
     //required this.bloodType,
   });
 
@@ -46,8 +48,9 @@ class UserProfile {
       avgTemperature: (medicalInfo['avgTemp'] ?? 0).toDouble(),
 
       avgSpo2: medicalInfo['avgSpo2'] ?? 0,
-
-      //bloodType: '',
+      wearableBand: driver['wearableBand']?['deviceId'] ?? 0, //bloodType: '',
     );
   }
+
+  void operator [](String other) {}
 }

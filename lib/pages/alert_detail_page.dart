@@ -3,7 +3,7 @@ import 'package:guardian_drive_mobile/data/vehicle_details.dart';
 import 'package:guardian_drive_mobile/mappers/incident_mapper.dart';
 import 'package:guardian_drive_mobile/models/alert_details.dart';
 import 'package:guardian_drive_mobile/models/health_event.dart';
-import 'package:guardian_drive_mobile/services/alert_service.dart';
+import 'package:guardian_drive_mobile/services/alert_api_service.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 
@@ -12,6 +12,7 @@ import '../widgets/alert_card.dart';
 import '../widgets/map.dart' as MapDrawer;
 
 class AlertDetail extends StatefulWidget {
+  final int alertId = 1;
   const AlertDetail({super.key});
 
   @override
@@ -64,6 +65,9 @@ class _AlertDetailState extends State<AlertDetail> {
   @override
   void initState() {
     super.initState();
+    // API ALERT request
+
+    // alertFuture = AlertApiService.getAlertById(widget.alertId) as Future<Alert>?;
   }
 
   getResponseTime(AlertDetails alert) {

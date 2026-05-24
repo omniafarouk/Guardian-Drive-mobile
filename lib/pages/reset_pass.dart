@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+//import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/pages/login_page.dart';
 import 'package:guardian_drive_mobile/services/auth_service.dart';
@@ -103,10 +103,6 @@ class _ResetPassState extends State<ResetPass> {
                             if (value == null || value.isEmpty) {
                               return "Please enter password";
                             }
-                            if (value.length < 6) {
-                              return "Password must be at least 6 characters";
-                            }
-                            return null;
                           },
                         ),
                       ),
@@ -179,16 +175,18 @@ class _ResetPassState extends State<ResetPass> {
                               final message =
                                   result["message"] ??
                                   "Password reset successful";
+                              if (result["success"]) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(message)),
+                                );
 
-                              ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(SnackBar(content: Text(message)));
-
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (_) => LoginPage()),
-                              );
-                              if (!result["success"]) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => LoginPage(),
+                                  ),
+                                );
+                              } else if (result["statusCode"] == 400) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -203,20 +201,32 @@ class _ResetPassState extends State<ResetPass> {
                                     builder: (_) => LoginPage(),
                                   ),
                                 );
+                              } else if (result["statusCode"] == 404) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(message)),
+                                );
                               }
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Invalid or expired token. Please request a new password reset.",
-                                  ),
-                                ),
-                              );
 
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (_) => LoginPage()),
-                              );
+                              /* if (result["statusCode"] == 404) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Invalid or expired token. Please request a new password reset.",
+                                    ),
+                                  ),
+                                );
+
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => LoginPage(),
+                                  ),
+                                );
+                              } else if (result["statusCode"] == 400) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(message)),
+                                );
+                              }*/
                             } finally {
                               setState(() {
                                 isPressed = false;

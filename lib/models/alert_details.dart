@@ -17,7 +17,6 @@ class AlertDetails {
     this.solvedAt,
     this.healthEvent,
     this.requestTime,
-    this.car,
     this.completionTime,
   });
   alertStatus parseAlertStatus(String? value) {

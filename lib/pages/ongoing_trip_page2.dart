@@ -52,33 +52,26 @@ class _OngoingTripPageState extends State<OngoingTripPage> {
         title: Text("Ongoing Trip"),
         foregroundColor: Colors.white,
       ),
-      body:  FlutterMap(
-                            options: MapOptions(
-                              initialCenter: LatLng(lat!, lng!),
-                              initialZoom: 13,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate:
-                                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                                subdomains: ['a', 'b', 'c', 'd'],
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  Marker(
-                                    point: LatLng(lat!, lng!),
-                                    width: 40,
-                                    height: 40,
-                                    child: Icon(
-                                      Icons.location_pin,
-                                      color: Colors.red,
-                                      size: 40,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
+      body: FlutterMap(
+        options: MapOptions(initialCenter: LatLng(lat!, lng!), initialZoom: 13),
+        children: [
+          TileLayer(
+            urlTemplate:
+                'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            subdomains: ['a', 'b', 'c', 'd'],
+          ),
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: LatLng(lat!, lng!),
+                width: 40,
+                height: 40,
+                child: Icon(Icons.location_pin, color: Colors.red, size: 40),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

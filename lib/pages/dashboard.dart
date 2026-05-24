@@ -2,100 +2,219 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:guardian_drive_mobile/models/band.dart';
+import 'package:guardian_drive_mobile/services/storage_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:guardian_drive_mobile/services/home_service.dart';
+import 'package:guardian_drive_mobile/services/wearableBand_service.dart';
+import 'package:guardian_drive_mobile/models/trip.dart';
+import 'package:guardian_drive_mobile/models/trip_location.dart';
+//import 'package:geolocator/geolocator.dart';
+import 'package:guardian_drive_mobile/services/route_service.dart'
+    as routeservice;
+import 'package:intl/intl.dart';
 
 class Dashboard extends StatefulWidget {
   @override
   _DashboardState createState() => _DashboardState();
 }
 
-class Trip {
-  final String from;
-  final String to;
-  final String date;
-
-  Trip({required this.from, required this.to, required this.date});
-}
-
-List<Trip> trips = [
-  Trip(from: "Alexandria", to: "Cairo", date: "Mar 7 at 2:00"),
-  Trip(from: "Giza", to: "Alex", date: "Mar 8 at 5:00"),
-  Trip(from: "Cairo", to: "Mansoura", date: "Mar 9 at 1:00"),
-];
-
 class _DashboardState extends State<Dashboard> {
+  final MapController mapController = MapController();
   double? lat;
   double? lng;
-
+  List<LatLng> route = [];
   int bpm = 72;
-  int battery = 95;
-  bool isConnected = true;
-
+  int battery = 0;
+  bool isConnected = false;
+  String username = "";
+  String startLocName = "";
+  String destLocName = "";
   Timer? timer;
   Random random = Random();
+
+  Trip? ongoingTrip;
+  TripLocation? currentLocation;
+  // Position? driverPosition;
+
+  bool isLoading = true;
+  List<Trip> plannedTrips = [];
+  bool isPlannedLoading = true;
 
   @override
   void initState() {
     super.initState();
+    initDashboard();
     startLiveBPM();
-    getLocation();
+    // startTracking();
+  }
+
+  Future<void> loadRoute() async {
+    if (ongoingTrip == null) return null;
+    final points = await routeservice.RouteService.getRoute(
+      startLat: ongoingTrip!.startLatitude,
+      startLong: ongoingTrip!.startLongitude,
+      destLat: ongoingTrip!.destLatitude,
+      destLong: ongoingTrip!.destLongitude,
+    );
+    setState(() {
+      route = points;
+    });
+  }
+
+  Future<String> getPlaceName(double lat, double lng) async {
+    try {
+      final places = await placemarkFromCoordinates(lat, lng);
+
+      if (places.isEmpty) {
+        return "Unknown location";
+      }
+
+      final p = places.first;
+
+      return [p.locality, p.country].where((e) => e != null).join(", ");
+    } catch (e) {
+      return "Unknown location";
+    }
+  }
+
+  String formatTripDate(DateTime date) {
+    return DateFormat("dd MMM yyyy • hh:mm a").format(date.toLocal());
+  }
+
+  Future<void> initDashboard() async {
+    final token = await StorageService.getToken();
+
+    await HomeService.getDeviceId();
+    await getBandData();
+    await getusername();
+    await loadTripLocation(token!);
+    await loadPlannedTrips();
+  }
+
+  Future<void> loadTripLocation(String token) async {
+    try {
+      final trip = await HomeService.getOnGoingTrip(token);
+
+      if (trip == null) {
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      final location = await HomeService().getTripLocation(trip.tripId, token);
+
+      setState(() {
+        ongoingTrip = trip;
+        currentLocation = location;
+        isLoading = false;
+      });
+      await loadRoute();
+
+      print("TRIP ID: ${trip.tripId}");
+      print("LAT: ${location.latitude}");
+      print("LNG: ${location.longitude}");
+    } catch (e) {
+      if (e.toString().contains("Failed to load location")) {
+        setState(() {
+          currentLocation = null;
+          ongoingTrip = null;
+          isLoading = false;
+        });
+
+        return;
+      }
+
+      print("Trip load error: $e");
+
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> getusername() async {
+    final name = await HomeService.getUserName();
+    setState(() {
+      username = name;
+    });
+  }
+
+  Future<void> loadPlannedTrips() async {
+    try {
+      final token = await StorageService.getToken();
+
+      final trips = await HomeService.getPlannedTrips(token!);
+      setState(() {
+        plannedTrips = trips;
+        isPlannedLoading = false;
+      });
+    } catch (e) {
+      print("planned trips error: $e");
+
+      setState(() {
+        isPlannedLoading = false;
+      });
+    }
+  }
+
+  Future<void> getBandData() async {
+    final result = await WearableService.getWearableBand();
+
+    if (result["status"] == "no_band") {
+      setState(() {
+        battery = 0;
+        isConnected = false;
+      });
+      return;
+    }
+
+    if (result["status"] == "error") {
+      setState(() {
+        battery = 0;
+        isConnected = false;
+      });
+      return;
+    }
+
+    final WearableBand band = result["data"];
+
+    setState(() {
+      battery = band.batteryLevel;
+      isConnected = band.isConnected;
+    });
   }
 
   void startLiveBPM() {
     timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      if (!mounted) {
-        return;
-      } // saftey check to avoid setState after dispose to avoid error/crash and memory leaks
+      if (!mounted) return;
+
       setState(() {
         bpm = 65 + random.nextInt(20);
-        if (battery > 0 && random.nextBool()) {
-          battery--;
-        }
       });
     });
   }
 
-  Future<void> getLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        print("Location services disabled");
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        print("Permission permanently denied");
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      if (!mounted) {
-        return;
-      } // saftey check to avoid setState after dispose when location is fetched after user leaves page
-      //, otherwise it won't find the widget to update and will throw error/crash
+  /* void startTracking() {
+    Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      ),
+    ).listen((Position position) {
       setState(() {
-        lat = position.latitude;
-        lng = position.longitude;
+        driverPosition = position;
       });
-    } catch (e) {
-      print("Location error: $e");
-    }
+    });
   }
-
+*/
   String getStatus() {
     if (!isConnected) return "NO BAND";
 
@@ -121,26 +240,36 @@ class _DashboardState extends State<Dashboard> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     double percent = bpm / 150;
+    final bounds = route.isNotEmpty
+        ? LatLngBounds.fromPoints(route)
+        : LatLngBounds.fromPoints([
+            LatLng(
+              ongoingTrip?.startLatitude ?? 0,
+              ongoingTrip?.startLongitude ?? 0,
+            ),
+            LatLng(
+              ongoingTrip?.destLatitude ?? 0,
+              ongoingTrip?.destLongitude ?? 0,
+            ),
+          ]);
 
     return Scaffold(
       appBar: CustomAppBar(title: "Overview"),
       drawer: const SideBarDrawer(),
 
-      body: GradientBackground(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height,
-          ),
+      body: Container(
+        height: double.infinity,
+        width: double.infinity,
+        child: GradientBackground(
           child: SingleChildScrollView(
             padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Welcome back,",
+                  "Welcome back, $username",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 26,
@@ -198,8 +327,6 @@ class _DashboardState extends State<Dashboard> {
                         lineWidth: 8,
                         percent: percent.clamp(0.0, 1.0),
                         animation: true,
-                        animationDuration: 800,
-                        circularStrokeCap: CircularStrokeCap.round,
                         progressColor: getStatusColor(),
                         backgroundColor: Colors.white24,
                         center: Column(
@@ -215,10 +342,7 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             Text(
                               "BPM",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
+                              style: TextStyle(color: Colors.white70),
                             ),
                           ],
                         ),
@@ -242,14 +366,34 @@ class _DashboardState extends State<Dashboard> {
                 Container(
                   height: 150,
                   width: double.infinity,
-                  child: lat == null || lng == null
+                  child: isLoading
                       ? Center(child: CircularProgressIndicator())
+                      : currentLocation == null
+                      ? Center(
+                          child: Text(
+                            "No ongoing trip",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        )
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(15),
                           child: FlutterMap(
+                            mapController: mapController,
                             options: MapOptions(
-                              initialCenter: LatLng(lat!, lng!),
+                              initialCenter: LatLng(
+                                ongoingTrip!.startLatitude,
+                                ongoingTrip!.startLongitude,
+                              ),
                               initialZoom: 13,
+
+                              onMapReady: () {
+                                mapController.fitCamera(
+                                  CameraFit.bounds(
+                                    bounds: bounds,
+                                    padding: const EdgeInsets.all(30),
+                                  ),
+                                );
+                              },
                             ),
                             children: [
                               TileLayer(
@@ -257,18 +401,63 @@ class _DashboardState extends State<Dashboard> {
                                     'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                                 subdomains: ['a', 'b', 'c', 'd'],
                               ),
+
+                              PolylineLayer(
+                                polylines: [
+                                  Polyline(
+                                    points: route,
+                                    strokeWidth: 6,
+                                    color: Colors.blue,
+                                  ),
+                                ],
+                              ),
+
                               MarkerLayer(
                                 markers: [
+                                  // START MARKER
                                   Marker(
-                                    point: LatLng(lat!, lng!),
+                                    point: LatLng(
+                                      ongoingTrip!.startLatitude,
+                                      ongoingTrip!.startLongitude,
+                                    ),
                                     width: 40,
                                     height: 40,
-                                    child: Icon(
-                                      Icons.location_pin,
+                                    child: const Icon(
+                                      Icons.location_on,
+                                      color: Colors.green,
+                                      size: 40,
+                                    ),
+                                  ),
+
+                                  // DESTINATION MARKER
+                                  Marker(
+                                    point: LatLng(
+                                      ongoingTrip!.destLatitude,
+                                      ongoingTrip!.destLongitude,
+                                    ),
+                                    width: 40,
+                                    height: 40,
+                                    child: const Icon(
+                                      Icons.flag,
                                       color: Colors.red,
                                       size: 40,
                                     ),
                                   ),
+
+                                  /*if (driverPosition != null)
+                                    Marker(
+                                      point: LatLng(
+                                        driverPosition!.latitude,
+                                        driverPosition!.longitude,
+                                      ),
+                                      width: 50,
+                                      height: 50,
+                                      child: const Icon(
+                                        Icons.directions_car,
+                                        color: Colors.blue,
+                                        size: 40,
+                                      ),
+                                    ),*/
                                 ],
                               ),
                             ],
@@ -288,43 +477,112 @@ class _DashboardState extends State<Dashboard> {
 
                 SizedBox(height: 10),
 
-                Column(
-                  children: trips.map((trip) {
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // From + To (left side)
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                isPlannedLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : plannedTrips.isEmpty
+                    ? Text(
+                        "No planned trips",
+                        style: TextStyle(color: Colors.white70),
+                      )
+                    : Column(
+                        children: plannedTrips.map((trip) {
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 10),
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  "From: ${trip.from}",
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  "To: ${trip.to}",
-                                  style: TextStyle(color: Colors.white),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      FutureBuilder(
+                                        future: Future.wait([
+                                          getPlaceName(
+                                            trip.startLatitude,
+                                            trip.startLongitude,
+                                          ),
+
+                                          getPlaceName(
+                                            trip.destLatitude,
+                                            trip.destLongitude,
+                                          ),
+                                        ]),
+
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) {
+                                            return const Padding(
+                                              padding: EdgeInsets.all(10),
+
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            );
+                                          }
+
+                                          final start = snapshot.data![0];
+
+                                          final end = snapshot.data![1];
+
+                                          return Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+
+                                                  children: [
+                                                    Text(
+                                                      "From: $start",
+
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+
+                                                    SizedBox(height: 6),
+
+                                                    Text(
+                                                      "To: $end",
+
+                                                      style: TextStyle(
+                                                        color: Colors.white70,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              Text(
+                                                formatTripDate(
+                                                  trip.plannedStartTime,
+                                                ),
+
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-
-                          // Date (right side, centered vertically)
-                          Text(
-                            trip.date,
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ],
+                          );
+                        }).toList(),
                       ),
-                    );
-                  }).toList(),
-                ),
-
-                SizedBox(height: 20),
               ],
             ),
           ),
