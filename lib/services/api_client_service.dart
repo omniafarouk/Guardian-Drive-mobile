@@ -17,6 +17,7 @@ class ApiClient {
   
   // Use this for all GET requests
   static Future<http.Response> get(String endpoint) async {
+    print(endpoint);
     return await http.get(
       Uri.parse('$baseUrl$endpoint'),
       headers: await headers(),

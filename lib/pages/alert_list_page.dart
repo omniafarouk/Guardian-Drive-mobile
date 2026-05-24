@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/models/alert_summary.dart';
+import 'package:guardian_drive_mobile/models/location_coords.dart';
 import 'package:guardian_drive_mobile/services/alert_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
-import 'package:guardian_drive_mobile/models/location.dart';
 import 'package:guardian_drive_mobile/widgets/alert_list_item.dart';
 import 'package:guardian_drive_mobile/widgets/filter_alert.dart';
-import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:number_paginator/number_paginator.dart';
 
@@ -20,8 +20,8 @@ class _AlertListPageState extends State<AlertListPage> {
   alertType? selectedType;
   DateTimeRange? selectedRange;
   String selectedOrderBy = "desc";
-  late Location location;
-  late List<Alert> alerts = [];
+  late LocationCoords location;
+  late List<AlertSummary> alerts = [];
   bool isLoading = true;
   int currentPage = 1;
   int totalPages = 1;

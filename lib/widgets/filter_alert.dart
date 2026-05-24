@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:guardian_drive_mobile/models/alert.dart';
+import 'package:guardian_drive_mobile/models/alert_summary.dart';
 
 final List<String> locations = ["Alexandria", "Cairo", "Giza"];
 

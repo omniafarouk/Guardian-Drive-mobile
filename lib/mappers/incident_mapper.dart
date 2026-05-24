@@ -1,11 +1,10 @@
+import 'package:guardian_drive_mobile/models/alert_details.dart';
 import 'package:guardian_drive_mobile/models/incident.dart';
 
-import '../models/alert.dart';
-
-List<Incident> buildIncidentTimeline(Alert alert) {
+List<Incident> buildIncidentTimeline(AlertDetails alert) {
   List<Incident> timeline = [];
   timeline.add(Incident(
-      time: alert.generatedAt, descrip: incidentDescription.Alert_trigger));
+      time: alert.alertSummary.generatedAt, descrip: incidentDescription.Alert_trigger));
 
   if (alert.requestTime != null) {
     timeline.add(Incident(

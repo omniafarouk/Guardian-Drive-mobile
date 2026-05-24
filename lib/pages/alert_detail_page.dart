@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/data/vehicle_details.dart';
 import 'package:guardian_drive_mobile/mappers/incident_mapper.dart';
+import 'package:guardian_drive_mobile/models/alert_details.dart';
 import 'package:guardian_drive_mobile/models/health_event.dart';
 import 'package:guardian_drive_mobile/services/alert_service.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 
-import '../models/alert.dart';
 import '../models/incident.dart';
 import '../widgets/alert_card.dart';
 import '../widgets/map.dart' as MapDrawer;
@@ -19,11 +19,11 @@ class AlertDetail extends StatefulWidget {
 }
 
 class _AlertDetailState extends State<AlertDetail> {
-  Future<Alert?>? alertFuture; // late Future<Alert> alertFuture;
+  Future<AlertDetails?>? alertFuture; // late Future<Alert> alertFuture;
   String? address;
   List<Incident>? incidentTimeline;
 
-  Color getAlertStatusColor(Alert alert) {
+  Color getAlertStatusColor(AlertDetails alert) {
     switch (alert.status) {
       case alertStatus.RESOLVED:
         return Colors.teal;
@@ -32,28 +32,32 @@ class _AlertDetailState extends State<AlertDetail> {
     }
   }
 
-  Color getHeartStatusColor(Alert alert) {
-    switch (alert.healthEvent?.heartStatus) {
-      case HeartStatus.Critical:
+  Color getHeartStatusColor(AlertDetails alert) {
+    switch (alert.healthEvent?.heartRateStatus) {
+      case HealthStatus.Critical:
         return Colors.red;
+      case HealthStatus.Mild:
+        return Colors.orange;
       default:
         return Colors.brown;
     }
   }
 
-  Color getHTempStatusColor(Alert alert) {
+  Color getHTempStatusColor(AlertDetails alert) {
     switch (alert.healthEvent?.tempStatus) {
-      case BodyTempStatus.Critical:
+      case HealthStatus.Critical:
         return Colors.red;
+      case HealthStatus.Mild:
+        return Colors.orange;
       default:
         return Colors.brown;
     }
   }
 
-  Future<void> loadAddress(Alert alert) async {
+  Future<void> loadAddress(AlertDetails alert) async {
     address = await getLocationName(
-      alert.triggeredLocation.latitude,
-      alert.triggeredLocation.longitude,
+      alert.alertSummary.triggeredLocation.latitude,
+      alert.alertSummary.triggeredLocation.longitude,
     );
   }
 
@@ -62,15 +66,15 @@ class _AlertDetailState extends State<AlertDetail> {
     super.initState();
   }
 
-  getResponseTime(Alert alert) {
-    return alert.solvedAt!.difference(alert.generatedAt);
+  getResponseTime(AlertDetails alert) {
+    return alert.solvedAt!.difference(alert.alertSummary.generatedAt);
   }
 
   @override
   Widget build(BuildContext context) {
     final int alertId = ModalRoute.of(context)!.settings.arguments as int;
     alertFuture = AlertApiService.getAlertById(alertId);
-    return FutureBuilder<Alert?>(
+    return FutureBuilder<AlertDetails?>(
       future: alertFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -126,7 +130,9 @@ class _AlertDetailState extends State<AlertDetail> {
                           fontSize: 20,
                         ),
                         children: [
-                          TextSpan(text: 'Alert #${alert.alertId} - '),
+                          TextSpan(
+                            text: 'Alert #${alert.alertSummary.alertId} - ',
+                          ),
                           // ignore: unnecessary_string_interpolations
                           TextSpan(
                             text: (alert.status == alertStatus.ACTIVE)
@@ -146,8 +152,8 @@ class _AlertDetailState extends State<AlertDetail> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(50),
                         child: MapDrawer.Map(
-                          alert.triggeredLocation.latitude,
-                          alert.triggeredLocation.longitude,
+                          alert.alertSummary.triggeredLocation.latitude,
+                          alert.alertSummary.triggeredLocation.longitude,
                         ),
                       ),
                     ),
@@ -303,7 +309,7 @@ class _AlertDetailState extends State<AlertDetail> {
                                             ),
                                           ),
                                           Text(
-                                            '${alert.healthEvent?.heartStatus?.name}',
+                                            '${alert.healthEvent?.heartRateStatus.name}',
                                             style: TextStyle(
                                               color: getHeartStatusColor(alert),
                                               fontSize: 16,
@@ -356,7 +362,7 @@ class _AlertDetailState extends State<AlertDetail> {
                                         ),
                                       ),
                                       Text(
-                                        '${alert.healthEvent?.tempStatus?.name}',
+                                        '${alert.healthEvent?.tempStatus.name}',
                                         style: TextStyle(
                                           color: getHTempStatusColor(alert),
                                           fontSize: 16,
@@ -447,7 +453,7 @@ class _AlertDetailState extends State<AlertDetail> {
                                     'Alert Type:',
                                     style: TextStyle(color: Colors.grey[800]),
                                   ),
-                                  Text(alert.type.name),
+                                  Text(alert.alertSummary.type.name),
                                   Text(
                                     'Response Time:',
                                     style: TextStyle(color: Colors.grey[800]),

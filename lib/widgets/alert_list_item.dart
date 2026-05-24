@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/models/alert_summary.dart';
 import 'package:intl/intl.dart';
-import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 
 String formatAlertDate(DateTime date) {
@@ -8,7 +8,7 @@ String formatAlertDate(DateTime date) {
 }
 
 class AlertListItem extends StatelessWidget {
-  final Alert alert;
+  final AlertSummary alert;
   const AlertListItem({super.key, required this.alert});
   @override
   Widget build(BuildContext context) {

@@ -1,63 +1,57 @@
+import 'package:guardian_drive_mobile/models/alert_summary.dart';
 import 'package:guardian_drive_mobile/models/car.dart';
 import 'package:guardian_drive_mobile/models/health_event.dart';
-import 'package:guardian_drive_mobile/models/location.dart';
 
-class Alert {
-  int alertId;
-  alertType type;
+class AlertDetails {
+  AlertSummary alertSummary;
   alertStatus status;
-
-  DateTime generatedAt;
   DateTime? solvedAt; // whole alert solved including towing
-
   Car? car;
-
-  int triggeredLocationId;
-  Location triggeredLocation;
-
-  int? stoppedLocationId;
-  Location? stoppedLocation;
-
   HealthEvent? healthEvent;
   DateTime? requestTime; // emergency service request time
   DateTime? completionTime; // ambulance arrival
 
-  Alert({
-    required this.alertId,
-    required this.type,
+  AlertDetails({
+    required this.alertSummary,
     required this.status,
-    required this.generatedAt,
     this.solvedAt,
-    required this.triggeredLocationId,
-    required this.triggeredLocation,
-    this.stoppedLocationId,
-    this.stoppedLocation,
     this.healthEvent,
     this.requestTime,
     this.car,
     this.completionTime,
   });
-
-  factory Alert.fromJson(Map<String, dynamic> json) {
-    return Alert(
-      alertId: json['alertId'],
-      type: alertType.values.firstWhere((e) => e.name == json['type']),
+  alertStatus parseAlertStatus(String? value) {
+  return alertStatus.values.firstWhere(
+    (e) =>
+        e.name.toUpperCase() ==
+        value.toString().trim().toUpperCase(),
+    orElse: () => alertStatus.ACTIVE,
+  );
+}
+  factory AlertDetails.fromJson(Map<String, dynamic> json) {
+    print(json);
+    return AlertDetails(
+      alertSummary: AlertSummary.fromJson({
+        'alertId': json['alertId'],
+        'type': json['type'],
+        'generatedAt': json['generatedAt'],
+        'triggeredLocation': json['triggeredLocation'],
+      }),
       status: alertStatus.values.firstWhere((e) => e.name == json['status']),
-      generatedAt: DateTime.parse(json['generatedAt']),
       solvedAt: json['solvedAt'] != null
           ? DateTime.parse(json['solvedAt'])
           : null,
-      triggeredLocationId: json['triggeredLocationId'],
-      triggeredLocation: Location.fromJson(json['triggeredLocation']),
-      stoppedLocationId: json['stoppedLocationId'],
-      stoppedLocation: json['stoppedLocation'] != null
-          ? Location.fromJson(json['stoppedLocation'])
-          : null,
+
       healthEvent: json['healthEvent'] != null
           ? HealthEvent.fromJson(json['healthEvent'])
           : null,
       car: json['trip'] != null && json['trip']['car'] != null
           ? Car.fromJson(json['trip']['car'])
+          : null,
+      requestTime:
+          json['emergencyServiceRequest'] != null &&
+              json['emergencyServiceRequest']['requestTime'] != null
+          ? DateTime.parse(json['emergencyServiceRequest']['requestTime'])
           : null,
       completionTime:
           json['emergencyServiceRequest'] != null &&
@@ -69,5 +63,3 @@ class Alert {
 }
 
 enum alertStatus { ACTIVE, RESOLVED }
-
-enum alertType { HEALTH_ABNORMAL, SOS }

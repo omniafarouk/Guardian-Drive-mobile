@@ -1,35 +1,37 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-enum HeartStatus { Critical }
+enum HealthStatus { Mild, Moderate, Critical, Normal }
 
-enum BodyTempStatus { Critical, Elevated }
+HealthStatus parseHealthStatus(String? value) {
+  return HealthStatus.values.firstWhere(
+    (e) => e.name.toUpperCase() == value.toString().trim().toUpperCase(),
+    orElse: () => HealthStatus.Normal,
+  );
+}
 
 class HealthEvent {
-  int eventId;
-  DateTime eventDate;
   double heartRate;
-  HeartStatus? heartStatus;
   double bodyTemp;
   double spo2;
-  BodyTempStatus? tempStatus;
+  HealthStatus heartRateStatus;
+  HealthStatus tempStatus;
+  HealthStatus spo2Status;
   HealthEvent({
-    required this.eventId,
-    required this.eventDate,
     required this.heartRate,
-    required this.heartStatus,
     required this.bodyTemp,
     required this.spo2,
+    required this.heartRateStatus,
     required this.tempStatus,
+    required this.spo2Status,
   });
 
   factory HealthEvent.fromJson(Map<String, dynamic> json) {
     return HealthEvent(
-      eventId: json['eventId'],
-      eventDate: DateTime.parse(json['eventDate']),
       heartRate: (json['heartRate'] ?? 0).toDouble(),
-      heartStatus:  HeartStatus.Critical ,//HeartStatus.values.firstWhere((e) => e.name == json['heartStatus']) ,
       bodyTemp: (json['temp'] ?? 0).toDouble(),
       spo2: (json['spo2'] ?? 0).toDouble(),
-      tempStatus: BodyTempStatus.Elevated,//BodyTempStatus.values.firstWhere((e) => e.name == json['tempStatus']),
+      heartRateStatus: parseHealthStatus(json['heartRateStatus']),
+      tempStatus: parseHealthStatus(json['tempStatus']),
+      spo2Status: parseHealthStatus(json['spo2Status']),
     );
   }
 }

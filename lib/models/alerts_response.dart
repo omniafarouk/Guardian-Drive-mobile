@@ -1,7 +1,7 @@
-import 'package:guardian_drive_mobile/models/alert.dart';
+import 'package:guardian_drive_mobile/models/alert_summary.dart';
 
 class AlertsResponse {
-  List<Alert> alerts;
+  List<AlertSummary> alerts;
   int page;
   int totalPages;
   int total;
@@ -16,7 +16,7 @@ class AlertsResponse {
 
   factory AlertsResponse.fromJson(Map<String, dynamic> json) {
     return AlertsResponse(
-      alerts: (json['alerts']  as List).map((e) => Alert.fromJson(e)).toList(),
+      alerts: (json['alerts']  as List).map((e) => AlertSummary.fromJson(e)).toList(),
       page: json['page'],
       totalPages: json['totalPages'],
       total: json['total'],
