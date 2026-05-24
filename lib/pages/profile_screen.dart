@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/services/home_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
@@ -16,12 +17,25 @@ class ProfileScreen extends StatefulWidget {
 class ProfileScreenState extends State<ProfileScreen> {
   UserProfile? user;
 
-  get SharedPreferences => null;
+  //get SharedPreferences => null;
+  String username = "";
 
   @override
   void initState() {
     super.initState();
+    personalInfo();
+  }
+
+  Future<void> personalInfo() async {
     fetchProfile();
+    await getusername();
+  }
+
+  Future<void> getusername() async {
+    final name = await HomeService.getUserName();
+    setState(() {
+      username = name;
+    });
   }
 
   Future<void> fetchProfile() async {
@@ -81,9 +95,9 @@ class ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 10),
 
-                    const Text(
-                      "User Profile",
-                      style: TextStyle(
+                    Text(
+                      "$username",
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,

@@ -11,13 +11,11 @@ import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-
 import 'package:guardian_drive_mobile/services/home_service.dart';
 import 'package:guardian_drive_mobile/services/wearableBand_service.dart';
-
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/models/trip_location.dart';
-import 'package:geolocator/geolocator.dart';
+//import 'package:geolocator/geolocator.dart';
 import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
 import 'package:intl/intl.dart';
@@ -43,7 +41,7 @@ class _DashboardState extends State<Dashboard> {
 
   Trip? ongoingTrip;
   TripLocation? currentLocation;
-  Position? driverPosition;
+  // Position? driverPosition;
 
   bool isLoading = true;
   List<Trip> plannedTrips = [];
@@ -54,7 +52,7 @@ class _DashboardState extends State<Dashboard> {
     super.initState();
     initDashboard();
     startLiveBPM();
-    startTracking();
+    // startTracking();
   }
 
   Future<void> loadRoute() async {
@@ -124,6 +122,16 @@ class _DashboardState extends State<Dashboard> {
       print("LAT: ${location.latitude}");
       print("LNG: ${location.longitude}");
     } catch (e) {
+      if (e.toString().contains("Failed to load location")) {
+        setState(() {
+          currentLocation = null;
+          ongoingTrip = null;
+          isLoading = false;
+        });
+
+        return;
+      }
+
       print("Trip load error: $e");
 
       setState(() {
@@ -194,7 +202,7 @@ class _DashboardState extends State<Dashboard> {
     });
   }
 
-  void startTracking() {
+  /* void startTracking() {
     Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
@@ -206,7 +214,7 @@ class _DashboardState extends State<Dashboard> {
       });
     });
   }
-
+*/
   String getStatus() {
     if (!isConnected) return "NO BAND";
 
@@ -251,323 +259,332 @@ class _DashboardState extends State<Dashboard> {
       appBar: CustomAppBar(title: "Overview"),
       drawer: const SideBarDrawer(),
 
-      body: GradientBackground(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Welcome back, $username",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
+      body: Container(
+        height: double.infinity,
+        width: double.infinity,
+        child: GradientBackground(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Welcome back, $username",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
 
-              SizedBox(height: 20),
+                SizedBox(height: 20),
 
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white.withOpacity(0.08),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          getStatus(),
-                          style: TextStyle(
-                            color: getStatusColor(),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          isConnected ? "Band Connected" : "Disconnected",
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        SizedBox(height: 6),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            "$battery%",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    CircularPercentIndicator(
-                      radius: 55,
-                      lineWidth: 8,
-                      percent: percent.clamp(0.0, 1.0),
-                      animation: true,
-                      progressColor: getStatusColor(),
-                      backgroundColor: Colors.white24,
-                      center: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "$bpm",
+                            getStatus(),
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
+                              color: getStatusColor(),
                               fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
                           ),
-                          Text("BPM", style: TextStyle(color: Colors.white70)),
+                          SizedBox(height: 10),
+                          Text(
+                            isConnected ? "Band Connected" : "Disconnected",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          SizedBox(height: 6),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              "$battery%",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
 
-              SizedBox(height: 30),
-
-              Text(
-                "Ongoing Trip",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              SizedBox(height: 10),
-
-              Container(
-                height: 150,
-                width: double.infinity,
-                child: isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : currentLocation == null
-                    ? Center(
-                        child: Text(
-                          "No ongoing trip",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: FlutterMap(
-                          mapController: mapController,
-                          options: MapOptions(
-                            initialCenter: LatLng(
-                              ongoingTrip!.startLatitude,
-                              ongoingTrip!.startLongitude,
-                            ),
-                            initialZoom: 13,
-
-                            onMapReady: () {
-                              mapController.fitCamera(
-                                CameraFit.bounds(
-                                  bounds: bounds,
-                                  padding: const EdgeInsets.all(30),
-                                ),
-                              );
-                            },
-                          ),
+                      CircularPercentIndicator(
+                        radius: 55,
+                        lineWidth: 8,
+                        percent: percent.clamp(0.0, 1.0),
+                        animation: true,
+                        progressColor: getStatusColor(),
+                        backgroundColor: Colors.white24,
+                        center: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            TileLayer(
-                              urlTemplate:
-                                  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                              subdomains: ['a', 'b', 'c', 'd'],
+                            Text(
+                              "$bpm",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-
-                            PolylineLayer(
-                              polylines: [
-                                Polyline(
-                                  points: route,
-                                  strokeWidth: 6,
-                                  color: Colors.blue,
-                                ),
-                              ],
-                            ),
-
-                            MarkerLayer(
-                              markers: [
-                                // START MARKER
-                                Marker(
-                                  point: LatLng(
-                                    ongoingTrip!.startLatitude,
-                                    ongoingTrip!.startLongitude,
-                                  ),
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(
-                                    Icons.location_on,
-                                    color: Colors.green,
-                                    size: 40,
-                                  ),
-                                ),
-
-                                // DESTINATION MARKER
-                                Marker(
-                                  point: LatLng(
-                                    ongoingTrip!.destLatitude,
-                                    ongoingTrip!.destLongitude,
-                                  ),
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(
-                                    Icons.flag,
-                                    color: Colors.red,
-                                    size: 40,
-                                  ),
-                                ),
-
-                                if (driverPosition != null)
-                                  Marker(
-                                    point: LatLng(
-                                      driverPosition!.latitude,
-                                      driverPosition!.longitude,
-                                    ),
-                                    width: 50,
-                                    height: 50,
-                                    child: const Icon(
-                                      Icons.directions_car,
-                                      color: Colors.blue,
-                                      size: 40,
-                                    ),
-                                  ),
-                              ],
+                            Text(
+                              "BPM",
+                              style: TextStyle(color: Colors.white70),
                             ),
                           ],
                         ),
                       ),
-              ),
-
-              SizedBox(height: 20),
-
-              Text(
-                "Upcoming Trips",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                    ],
+                  ),
                 ),
-              ),
 
-              SizedBox(height: 10),
+                SizedBox(height: 30),
 
-              isPlannedLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : plannedTrips.isEmpty
-                  ? Text(
-                      "No planned trips",
-                      style: TextStyle(color: Colors.white70),
-                    )
-                  : Column(
-                      children: plannedTrips.map((trip) {
-                        return Container(
-                          margin: EdgeInsets.only(bottom: 10),
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
+                Text(
+                  "Ongoing Trip",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height: 10),
+
+                Container(
+                  height: 150,
+                  width: double.infinity,
+                  child: isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : currentLocation == null
+                      ? Center(
+                          child: Text(
+                            "No ongoing trip",
+                            style: TextStyle(color: Colors.white),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: FlutterMap(
+                            mapController: mapController,
+                            options: MapOptions(
+                              initialCenter: LatLng(
+                                ongoingTrip!.startLatitude,
+                                ongoingTrip!.startLongitude,
+                              ),
+                              initialZoom: 13,
+
+                              onMapReady: () {
+                                mapController.fitCamera(
+                                  CameraFit.bounds(
+                                    bounds: bounds,
+                                    padding: const EdgeInsets.all(30),
+                                  ),
+                                );
+                              },
+                            ),
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    FutureBuilder(
-                                      future: Future.wait([
-                                        getPlaceName(
-                                          trip.startLatitude,
-                                          trip.startLongitude,
-                                        ),
+                              TileLayer(
+                                urlTemplate:
+                                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                                subdomains: ['a', 'b', 'c', 'd'],
+                              ),
 
-                                        getPlaceName(
-                                          trip.destLatitude,
-                                          trip.destLongitude,
-                                        ),
-                                      ]),
+                              PolylineLayer(
+                                polylines: [
+                                  Polyline(
+                                    points: route,
+                                    strokeWidth: 6,
+                                    color: Colors.blue,
+                                  ),
+                                ],
+                              ),
 
-                                      builder: (context, snapshot) {
-                                        if (!snapshot.hasData) {
-                                          return const Padding(
-                                            padding: EdgeInsets.all(10),
-
-                                            child: CircularProgressIndicator(),
-                                          );
-                                        }
-
-                                        final start = snapshot.data![0];
-
-                                        final end = snapshot.data![1];
-
-                                        return Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-
-                                          children: [
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-
-                                                children: [
-                                                  Text(
-                                                    "From: $start",
-
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-
-                                                  SizedBox(height: 6),
-
-                                                  Text(
-                                                    "To: $end",
-
-                                                    style: TextStyle(
-                                                      color: Colors.white70,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-
-                                            Text(
-                                              formatTripDate(
-                                                trip.plannedStartTime,
-                                              ),
-
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      },
+                              MarkerLayer(
+                                markers: [
+                                  // START MARKER
+                                  Marker(
+                                    point: LatLng(
+                                      ongoingTrip!.startLatitude,
+                                      ongoingTrip!.startLongitude,
                                     ),
-                                  ],
-                                ),
+                                    width: 40,
+                                    height: 40,
+                                    child: const Icon(
+                                      Icons.location_on,
+                                      color: Colors.green,
+                                      size: 40,
+                                    ),
+                                  ),
+
+                                  // DESTINATION MARKER
+                                  Marker(
+                                    point: LatLng(
+                                      ongoingTrip!.destLatitude,
+                                      ongoingTrip!.destLongitude,
+                                    ),
+                                    width: 40,
+                                    height: 40,
+                                    child: const Icon(
+                                      Icons.flag,
+                                      color: Colors.red,
+                                      size: 40,
+                                    ),
+                                  ),
+
+                                  /*if (driverPosition != null)
+                                    Marker(
+                                      point: LatLng(
+                                        driverPosition!.latitude,
+                                        driverPosition!.longitude,
+                                      ),
+                                      width: 50,
+                                      height: 50,
+                                      child: const Icon(
+                                        Icons.directions_car,
+                                        color: Colors.blue,
+                                        size: 40,
+                                      ),
+                                    ),*/
+                                ],
                               ),
                             ],
                           ),
-                        );
-                      }).toList(),
-                    ),
-            ],
+                        ),
+                ),
+
+                SizedBox(height: 20),
+
+                Text(
+                  "Upcoming Trips",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height: 10),
+
+                isPlannedLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : plannedTrips.isEmpty
+                    ? Text(
+                        "No planned trips",
+                        style: TextStyle(color: Colors.white70),
+                      )
+                    : Column(
+                        children: plannedTrips.map((trip) {
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 10),
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      FutureBuilder(
+                                        future: Future.wait([
+                                          getPlaceName(
+                                            trip.startLatitude,
+                                            trip.startLongitude,
+                                          ),
+
+                                          getPlaceName(
+                                            trip.destLatitude,
+                                            trip.destLongitude,
+                                          ),
+                                        ]),
+
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) {
+                                            return const Padding(
+                                              padding: EdgeInsets.all(10),
+
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            );
+                                          }
+
+                                          final start = snapshot.data![0];
+
+                                          final end = snapshot.data![1];
+
+                                          return Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+
+                                                  children: [
+                                                    Text(
+                                                      "From: $start",
+
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+
+                                                    SizedBox(height: 6),
+
+                                                    Text(
+                                                      "To: $end",
+
+                                                      style: TextStyle(
+                                                        color: Colors.white70,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              Text(
+                                                formatTripDate(
+                                                  trip.plannedStartTime,
+                                                ),
+
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+              ],
+            ),
           ),
         ),
       ),

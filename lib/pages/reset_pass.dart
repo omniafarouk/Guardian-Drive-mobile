@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+//import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/pages/login_page.dart';
 import 'package:guardian_drive_mobile/services/auth_service.dart';
@@ -206,15 +206,8 @@ class _ResetPassState extends State<ResetPass> {
                                   SnackBar(content: Text(message)),
                                 );
                               }
-                              /*ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(SnackBar(content: Text(message)));
 
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (_) => LoginPage()),
-                              );*/
-                              if (result["statusCode"] == 404) {
+                              /* if (result["statusCode"] == 404) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -233,21 +226,7 @@ class _ResetPassState extends State<ResetPass> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text(message)),
                                 );
-                              }
-                            } catch (e) {
-                              /*ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Invalid or expired token. Please request a new password reset.",
-                                  ),
-                                ),
-                              );
-
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (_) => LoginPage()),
-
-                              );*/
+                              }*/
                             } finally {
                               setState(() {
                                 isPressed = false;
