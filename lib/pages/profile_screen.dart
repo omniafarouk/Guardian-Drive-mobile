@@ -4,6 +4,7 @@ import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:guardian_drive_mobile/models/user.dart';
 import 'package:guardian_drive_mobile/services/user_service.dart';
+import 'package:guardian_drive_mobile/services/storage_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,11 +30,9 @@ class ProfileScreenState extends State<ProfileScreen> {
 
       //final token = prefs.getString('token');
       //final userId = prefs.getInt('userId');
-      final token =
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJEUklWRVIiLCJpYXQiOjE3Nzg2MjgzNTEsImV4cCI6MTc3ODcxNDc1MX0.VBbQ38vF5STkLkS5Flv80NTEQA2U4NVMnbWofqba6k0";
-      final userId = 3;
-      /* if (token == null || userId == null)
-       return;*/
+      /*  final token = await StorageService.getToken();
+
+      final userId = await StorageService.getId();*/
 
       final fetchedUser = await UserService.getUserById();
 
@@ -55,106 +54,106 @@ class ProfileScreenState extends State<ProfileScreen> {
       body: user == null
           ? const Center(child: CircularProgressIndicator())
           : GradientBackground(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey.shade200,
-                  border: Border.all(
-                    color: const Color(0xEE323658),
-                    width: 2,
-                  ),
-                ),
-                child: const ClipOval(
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 80,
-                    color: Color(0xFF141931),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              const Text(
-                "User Profile",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              Padding(
-                padding: const EdgeInsets.all(40),
+              child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildField(label: "Email", value: user!.email),
-                    _buildField(label: "Phone", value: user!.phone),
-                    _buildField(label: "License", value: user!.license),
-                    _buildField(
-                      label: "Medications",
-                      value: user!.medications.toString() ?? '',
-                    ),
-                    _buildField(
-                      label: "Medical Conditions",
-                      value: user!.medicalConditions.toString() ?? '',
-                    ),
+                    const SizedBox(height: 40),
 
-                    const SizedBox(height: 10),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildField(
-                            label: "Heart Rate",
-                            value: user?.avgHeartRate.toString() ?? '',
-                          ),
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey.shade200,
+                        border: Border.all(
+                          color: const Color(0xEE323658),
+                          width: 2,
                         ),
-                        const SizedBox(width: 20),
-                        Expanded(
-                          child: _buildField(
-                            label: "Temperature",
-                            value: user?.avgTemperature.toString() ?? '',
-                          ),
+                      ),
+                      child: const ClipOval(
+                        child: Icon(
+                          Icons.person_outline,
+                          size: 80,
+                          color: Color(0xFF141931),
                         ),
-                      ],
+                      ),
                     ),
 
                     const SizedBox(height: 10),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildField(
-                            label: "SpO2",
-                            value: user?.avgSpo2.toString() ?? '',
+                    const Text(
+                      "User Profile",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Column(
+                        children: [
+                          _buildField(label: "Email", value: user!.email),
+                          _buildField(label: "Phone", value: user!.phone),
+                          _buildField(label: "License", value: user!.license),
+                          _buildField(
+                            label: "Medications",
+                            value: user!.medications.toString() ?? '',
                           ),
-                        ),
-                        const SizedBox(width: 20),
-                        /*Expanded(
+                          _buildField(
+                            label: "Medical Conditions",
+                            value: user!.medicalConditions.toString() ?? '',
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildField(
+                                  label: "Heart Rate",
+                                  value: user?.avgHeartRate.toString() ?? '',
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: _buildField(
+                                  label: "Temperature",
+                                  value: user?.avgTemperature.toString() ?? '',
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildField(
+                                  label: "SpO2",
+                                  value: user?.avgSpo2.toString() ?? '',
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              /*Expanded(
                                 child: _buildField(
                                   label: "Blood Type",
                                   //value: user!.bloodType,
                                 ),
                               ),*/
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 

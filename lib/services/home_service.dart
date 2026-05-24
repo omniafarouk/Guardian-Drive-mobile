@@ -26,14 +26,13 @@ class HomeService {
     try {
       final user = await UserService.getUserById();
 
-      final deviceId = user.wearableBand;
+      final deviceId = user.wearableBand ?? -1;
 
       await StorageService.saveDeviceId(deviceId);
 
       return deviceId;
     } catch (error) {
       print("Error getting device id: $error");
-
       return -1;
     }
   }
