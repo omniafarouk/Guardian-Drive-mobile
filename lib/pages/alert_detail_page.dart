@@ -75,7 +75,7 @@ class _AlertDetailState extends State<AlertDetail> {
     final int alertId = ModalRoute.of(context)!.settings.arguments as int;
     alertFuture = AlertApiService.getAlertById(
       alertId,
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3ODYyODM2MywiZXhwIjoxNzc4NzE0NzYzfQ.rfbLVWAtSlhNayxV1z9Yq1KFP5BsGr-tQo1tOMTrOGA",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3ODYyODM2MywiZXhwIjoxNzc4NzE0NzYzfQ.rfbLVWAtSlhNayxV1z9Yq1KFP5BsGr-tQo1tOMTrOGA",
     );
     return FutureBuilder<Alert?>(
       future: alertFuture,
