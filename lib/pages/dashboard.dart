@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:guardian_drive_mobile/models/band.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
@@ -157,11 +158,29 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Future<void> getBandData() async {
-    final bandData = await WearableService.getWearableBand();
+    final result = await WearableService.getWearableBand();
+
+    if (result["status"] == "no_band") {
+      setState(() {
+        battery = 0;
+        isConnected = false;
+      });
+      return;
+    }
+
+    if (result["status"] == "error") {
+      setState(() {
+        battery = 0;
+        isConnected = false;
+      });
+      return;
+    }
+
+    final WearableBand band = result["data"];
 
     setState(() {
-      battery = bandData.batteryLevel;
-      isConnected = bandData.isConnected;
+      battery = band.batteryLevel;
+      isConnected = band.isConnected;
     });
   }
 
