@@ -98,7 +98,7 @@ class _MyAppState extends State<MyApp> {
   void _goToLogin() {
     navigatorKey.currentState?.pushNamedAndRemoveUntil(
       '/login',
-          (route) => false,
+      (route) => false,
     );
   }
 

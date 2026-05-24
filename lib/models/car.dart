@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'package:guardian_drive_mobile/models/trip.dart';
 
@@ -32,5 +33,4 @@ class Car {
     "status": status,
   };
 }
-
 enum carStatus { ACTIVE, IN_TRIP, DISABLED }
