@@ -4,7 +4,7 @@ import 'storage_service.dart';
 
 class ApiClient {
   //static const String baseUrl = 'http://localhost:3000';
-  static const String baseUrl="http://192.168.1.10:3000";
+  static const String baseUrl="http://192.168.0.151:3000";
   // Builds headers with token automatically
   static Future<Map<String, String>> headers() async {
     final token = await StorageService.getToken();

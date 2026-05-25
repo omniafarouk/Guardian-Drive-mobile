@@ -353,12 +353,24 @@ class _DashboardState extends State<Dashboard> {
 
                 SizedBox(height: 30),
 
-                Text(
-                  "Ongoing Trip",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      "Ongoing Trip",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(width: 550),
+                    ElevatedButton.icon(
+                      onPressed: () => {
+                        Navigator.pushNamed(context, '/ongoing-trip'),
+                      },
+                      label: Text('Go to map'),
+                      icon: Icon(Icons.arrow_forward_rounded),
+                    ),
+                  ],
                 ),
 
                 SizedBox(height: 10),

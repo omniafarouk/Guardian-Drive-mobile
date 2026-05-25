@@ -6,6 +6,8 @@ import 'package:app_links/app_links.dart';
 import 'package:guardian_drive_mobile/pages/alert_list_page.dart';
 import 'package:guardian_drive_mobile/pages/dashboard.dart';
 import 'package:guardian_drive_mobile/pages/login_page.dart';
+import 'package:guardian_drive_mobile/pages/newpage.dart';
+import 'package:guardian_drive_mobile/pages/ongoing_trip_page.dart';
 import 'package:guardian_drive_mobile/pages/profile_screen.dart';
 import 'package:guardian_drive_mobile/pages/trip_details_page.dart';
 import 'package:guardian_drive_mobile/pages/trip_list_page.dart';
@@ -123,6 +125,7 @@ class _MyAppState extends State<MyApp> {
         '/login': (context) => LoginPage(),
         '/alert-details': (context) => AlertDetail(),
         '/trip-details': (context) => TripDetailsPage(),
+        '/ongoing-trip': (context) => OngoingTrip(),
       },
     );
   }

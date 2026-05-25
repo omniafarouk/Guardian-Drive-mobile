@@ -61,6 +61,7 @@ class AlertApiService {
   // GET alert by alertId
   static Future<AlertDetails?> getAlertById(int id) async {
     try {
+      
       final res = await ApiClient.get("/api/alerts/$id");
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
