@@ -15,6 +15,7 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+<<<<<<< HEAD
 
 
 
@@ -52,3 +53,5 @@ The first aggregation level computes a five-minute average from the raw readings
 The second aggregation level computes a thirty-minute average from the six five-minute averages accumulated in that window. A one-hour interval was considered but was ruled out for shorter trips, where a single data point per hour would leave trips under two hours with only one or two averages, making the final trip average statistically weak. Thirty minutes provides at least two data points on the shortest practical trips while producing a smooth and representative average on longer shifts, and the resulting value is persisted to Hive as the most critical checkpoint in the pipeline since it directly feeds the final computation.
 
 At trip end, all persisted thirty-minute averages are read from Hive and combined into a single trip-level average that is submitted to the backend as the canonical health record for that trip. This final value represents the driver's average physiological state across the entire shift and is what fleet managers and the system use for health trend analysis and alert baseline comparison. Both Hive boxes are cleared only after the backend confirms a successful submission, ensuring no data is discarded before it has been safely received.
+=======
+>>>>>>> 593d904f93a53370a7fbd80d71fa7e163f205e38

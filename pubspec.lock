@@ -320,6 +320,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+<<<<<<< HEAD
   hive:
     dependency: transitive
     description:
@@ -336,6 +337,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+=======
+>>>>>>> 593d904f93a53370a7fbd80d71fa7e163f205e38
   hooks:
     dependency: transitive
     description:

@@ -6,6 +6,7 @@ import 'package:guardian_drive_mobile/models/alert_request.dart';
 import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/alert_api_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
+import 'package:flutter/material.dart';
 
 class OngoingTripPage extends StatefulWidget {
   const OngoingTripPage({super.key});
@@ -143,6 +144,7 @@ class _OnGoingTripState extends State<OngoingTripPage> {
               );
               // 2. Wait for the API call
               await triggerSOS(context);
+              // TODO : trigger SOS Alert + create a loading widget or something till alert is triggered
             },
           ),
         ],

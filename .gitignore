@@ -43,6 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+<<<<<<< HEAD
 
 
 # added by hand
@@ -50,3 +51,5 @@ app.*.map.json
 /windows/
 /macos/
 /web/
+=======
+>>>>>>> 593d904f93a53370a7fbd80d71fa7e163f205e38

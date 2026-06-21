@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/alert_summary.dart';
+import 'package:guardian_drive_mobile/models/location_coords.dart';
 import 'package:guardian_drive_mobile/services/alert_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
