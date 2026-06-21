@@ -1,0 +1,186 @@
+[1mdiff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml[m
+[1mindex 26e5592..e1624eb 100644[m
+[1m--- a/android/app/src/main/AndroidManifest.xml[m
+[1m+++ b/android/app/src/main/AndroidManifest.xml[m
+[36m@@ -7,26 +7,27 @@[m
+         android:name="${applicationName}"[m
+         android:icon="@mipmap/ic_launcher">[m
+         <activity[m
+[31m-            android:name=".MainActivity"[m
+[31m-            android:exported="true"[m
+[31m-            android:launchMode="singleTop"[m
+[31m-            android:taskAffinity=""[m
+[31m-            android:theme="@style/LaunchTheme"[m
+[31m-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"[m
+[31m-            android:hardwareAccelerated="true"[m
+[31m-            android:windowSoftInputMode="adjustResize">[m
+[31m-            <!-- Specifies an Android theme to apply to this Activity as soon as[m
+[31m-                 the Android process has started. This theme is visible to the user[m
+[31m-                 while the Flutter UI initializes. After that, this theme continues[m
+[31m-                 to determine the Window background behind the Flutter UI. -->[m
+[31m-            <meta-data[m
+[31m-              android:name="io.flutter.embedding.android.NormalTheme"[m
+[31m-              android:resource="@style/NormalTheme"[m
+[31m-              />[m
+[32m+[m[32m             android:name=".MainActivity"[m
+[32m+[m[32m             android:exported="true"[m
+[32m+[m[32m             android:launchMode="singleTop"[m
+[32m+[m[32m             android:theme="@style/LaunchTheme">[m
+[32m+[m
+             <intent-filter>[m
+                 <action android:name="android.intent.action.MAIN"/>[m
+                 <category android:name="android.intent.category.LAUNCHER"/>[m
+             </intent-filter>[m
+[32m+[m
+[32m+[m[32m            <intent-filter>[m
+[32m+[m[32m                <action android:name="android.intent.action.VIEW"/>[m
+[32m+[m
+[32m+[m[32m                <category android:name="android.intent.category.DEFAULT"/>[m
+[32m+[m[32m                <category android:name="android.intent.category.BROWSABLE"/>[m
+[32m+[m
+[32m+[m[32m                <data[m
+[32m+[m[32m                    android:scheme="guardiandrive"[m
+[32m+[m[32m                    android:host="reset-password"/>[m
+[32m+[m[32m            </intent-filter>[m
+[32m+[m
+         </activity>[m
+         <!-- Don't delete the meta-data below.[m
+              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->[m
+[1mdiff --git a/lib/main.dart b/lib/main.dart[m
+[1mindex 8fa2a4c..bd58877 100644[m
+[1m--- a/lib/main.dart[m
+[1m+++ b/lib/main.dart[m
+[36m@@ -1,4 +1,8 @@[m
+[32m+[m[32mimport 'dart:async';[m
+[32m+[m
+ import 'package:flutter/material.dart';[m
+[32m+[m[32mimport 'package:app_links/app_links.dart';[m
+[32m+[m
+ import 'package:guardian_drive_mobile/pages/alert_list_page.dart';[m
+ import 'package:guardian_drive_mobile/pages/dashboard.dart';[m
+ import 'package:guardian_drive_mobile/pages/login_page.dart';[m
+[36m@@ -6,27 +10,94 @@[m [mimport 'package:guardian_drive_mobile/pages/profile_screen.dart';[m
+ import 'package:guardian_drive_mobile/pages/trip_details_page.dart';[m
+ import 'package:guardian_drive_mobile/pages/trip_list_page.dart';[m
+ import 'package:guardian_drive_mobile/pages/alert_detail_page.dart';[m
+[32m+[m[32mimport 'package:guardian_drive_mobile/pages/reset_pass.dart';[m
+[32m+[m
+[32m+[m[32mfinal GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();[m
+ [m
+ void main() {[m
+[32m+[m[32m  WidgetsFlutterBinding.ensureInitialized();[m
+   runApp(const MyApp());[m
+ }[m
+ [m
+[31m-class MyApp extends StatelessWidget {[m
+[32m+[m[32mclass MyApp extends StatefulWidget {[m
+   const MyApp({super.key});[m
+ [m
+[32m+[m[32m  @override[m
+[32m+[m[32m  State<MyApp> createState() => _MyAppState();[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mclass _MyAppState extends State<MyApp> {[m
+[32m+[m[32m  final AppLinks appLinks = AppLinks();[m
+[32m+[m
+[32m+[m[32m  StreamSubscription? _sub;[m
+[32m+[m
+[32m+[m[32m  bool handledLink = false;[m
+[32m+[m
+[32m+[m[32m  @override[m
+[32m+[m[32m  void initState() {[m
+[32m+[m[32m    super.initState();[m
+[32m+[m
+[32m+[m[32m    WidgetsBinding.instance.addPostFrameCallback((_) {[m
+[32m+[m[32m      initDeepLinks();[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  void initDeepLinks() async {[m
+[32m+[m[32m    final uri = await appLinks.getInitialLink();[m
+[32m+[m
+[32m+[m[32m    if (uri != null && uri.host == "reset-password") {[m
+[32m+[m[32m      handledLink = true;[m
+[32m+[m
+[32m+[m[32m      final token = uri.queryParameters['token'];[m
+[32m+[m
+[32m+[m[32m      WidgetsBinding.instance.addPostFrameCallback((_) {[m
+[32m+[m[32m        navigatorKey.currentState?.push([m
+[32m+[m[32m          MaterialPageRoute(builder: (_) => ResetPass(token: token ?? "")),[m
+[32m+[m[32m        );[m
+[32m+[m[32m      });[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    _sub = appLinks.uriLinkStream.listen((uri) {[m
+[32m+[m[32m      if (handledLink) return;[m
+[32m+[m
+[32m+[m[32m      if (uri.host == "reset-password") {[m
+[32m+[m[32m        handledLink = true;[m
+[32m+[m
+[32m+[m[32m        final token = uri.queryParameters['token'];[m
+[32m+[m
+[32m+[m[32m        if (!mounted) return;[m
+[32m+[m
+[32m+[m[32m        WidgetsBinding.instance.addPostFrameCallback((_) {[m
+[32m+[m[32m          navigatorKey.currentState?.push([m
+[32m+[m[32m            MaterialPageRoute(builder: (_) => ResetPass(token: token ?? "")),[m
+[32m+[m[32m          );[m
+[32m+[m[32m        });[m
+[32m+[m[32m      }[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  @override[m
+[32m+[m[32m  void dispose() {[m
+[32m+[m[32m    _sub?.cancel();[m
+[32m+[m[32m    super.dispose();[m
+[32m+[m[32m  }[m
+[32m+[m
+   @override[m
+   Widget build(BuildContext context) {[m
+     return MaterialApp([m
+[32m+[m[32m      navigatorKey: navigatorKey,[m
+[32m+[m
+       debugShowCheckedModeBanner: false,[m
+[32m+[m
+       title: 'Guardian Drive',[m
+[31m-      initialRoute: '/home', // the first screen that opens[m
+[31m-      // can be initialRoute or home: const HomeScreen(), or as '/' in routes[m
+[32m+[m
+[32m+[m[32m      initialRoute: '/login',[m
+[32m+[m
+       routes: {[m
+         '/home': (context) => Dashboard(),[m
+         '/profile': (context) => const ProfileScreen(),[m
+         '/trips': (context) => const tripListPage(),[m
+         '/alerts': (context) => const AlertListPage(),[m
+[31m-        //'/settings': (context) => const SettingsScreen(),[m
+         '/login': (context) => LoginPage(),[m
+         '/alert-details': (context) => AlertDetail(),[m
+         '/trip-details': (context) => TripDetailsPage(),[m
+[1mdiff --git a/lib/models/trip.dart b/lib/models/trip.dart[m
+[1mindex f8cff64..f33c897 100644[m
+[1m--- a/lib/models/trip.dart[m
+[1m+++ b/lib/models/trip.dart[m
+[36m@@ -22,7 +22,7 @@[m [mclass Trip {[m
+     required this.startLatitude,[m
+     required this.startLongitude,[m
+     required this.destLatitude,[m
+[31m-    required this.destLongitude[m
+[32m+[m[32m    required this.destLongitude,[m
+   });[m
+ }[m
+ [m
+[1mdiff --git a/lib/pages/forget_pass.dart b/lib/pages/forget_pass.dart[m
+[1mindex da06df1..bc44ada 100644[m
+[1m--- a/lib/pages/forget_pass.dart[m
+[1m+++ b/lib/pages/forget_pass.dart[m
+[36m@@ -1,6 +1,8 @@[m
+[32m+[m[32m//import 'dart:math';[m
+ import 'package:flutter/cupertino.dart';[m
+ import 'package:flutter/material.dart';[m
+[31m-import 'package:guardian_drive_mobile/pages/reset_pass.dart';[m
+[32m+[m[32m//import 'package:guardian_drive_mobile/pages/reset_pass.dart';[m
+[32m+[m[32mimport 'package:guardian_drive_mobile/services/auth_service.dart';[m
+ [m
+ class ForgetPass extends Statef

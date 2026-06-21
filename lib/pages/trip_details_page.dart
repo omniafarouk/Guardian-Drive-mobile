@@ -1,0 +1,436 @@
+import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/widgets/background.dart';
+import 'package:intl/intl.dart';
+import 'package:guardian_drive_mobile/models/trip.dart';
+import 'package:guardian_drive_mobile/models/car.dart';
+import '../services/trip_service.dart';
+import '../services/car_service.dart';
+import '../widgets/map.dart' as MapDrawer;
+import 'package:guardian_drive_mobile/utils/location_helper.dart';
+
+String _formatTripDate(DateTime date) {
+  return DateFormat("MMM d, yyyy 'at' h:mm a").format(date);
+}
+
+Color getStatusColor(TripStatus status) {
+  switch (status) {
+    case TripStatus.PLANNED:
+      return Colors.orange;
+    case TripStatus.ONGOING:
+      return Colors.green;
+    case TripStatus.CANCELLED:
+      return Colors.red;
+    case TripStatus.COMPLETED:
+      return Colors.blue;
+  }
+}
+
+class TripDetailsPage extends StatefulWidget {
+  const TripDetailsPage({super.key});
+
+  @override
+  State<TripDetailsPage> createState() => _TripDetailsPageState();
+}
+
+class _TripDetailsPageState extends State<TripDetailsPage> {
+  Trip? trip;
+  Car? car;
+  bool tripIsLoading = true;
+  bool carIsLoading = true;
+  bool buttonActionLoading = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final tripId = ModalRoute.of(context)!.settings.arguments as int;
+    _fetchTrip(tripId);
+  }
+
+  void _fetchTrip(int tripId) async {
+    setState(() {
+      tripIsLoading = true;
+    });
+    try {
+      final response = await TripService().getTripById(tripId);
+      setState(() {
+        trip = response;
+      });
+      if (trip!.engineId != null) {
+        _fetchCar(trip!.engineId!);
+      }
+    } finally {
+      setState(() {
+        tripIsLoading = false;
+      });
+    }
+  }
+
+  void _fetchCar(String engineId) async {
+    setState(() {
+      carIsLoading = true;
+    });
+    try {
+      final response = await CarService().getCarById(engineId);
+      setState(() {
+        car = response;
+      });
+    } finally {
+      setState(() {
+        carIsLoading = false;
+      });
+    }
+  }
+
+  Future<void> _startTrip() async {
+    if (trip == null) return;
+    setState(() {
+      buttonActionLoading = true;
+    });
+    try {
+      final updatedTrip = await TripService().patchTrip(
+        trip!.tripId,
+        TripStatus.ONGOING,
+      );
+      setState(() {
+        trip = updatedTrip;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Trip started successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() {
+        buttonActionLoading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (tripIsLoading || trip == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF060B21),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    bool canStartTrip =
+        trip!.status == TripStatus.PLANNED &&
+        DateTime.now().isAfter(trip!.plannedStartTime);
+    return Scaffold(
+      backgroundColor: Color(0xFF060B21),
+      appBar: AppBar(
+        iconTheme: IconThemeData(size: 30, color: Colors.white),
+        backgroundColor: Colors.transparent,
+        title: Text(
+          'Trip Detail',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: GradientBackground(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height,
+            ),
+            child: Container(
+              margin: EdgeInsets.fromLTRB(15, 25, 15, 15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Text(
+                        'Trip #${trip!.tripId} - ',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        trip!.status.name,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: getStatusColor(trip!.status),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10),
+                  Container(
+                    height: 200,
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(40.0),
+                      child: MapDrawer.Map(
+                        trip!.startLatitude,
+                        trip!.startLongitude,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 15),
+
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.7,
+                    child: Table(
+                      columnWidths: const {
+                        0: IntrinsicColumnWidth(), // icon column (tight)
+                        1: FixedColumnWidth(20),
+                        2: IntrinsicColumnWidth(), // text column (tight)
+                      },
+                      defaultVerticalAlignment:
+                          TableCellVerticalAlignment.middle,
+                      children: [
+                        _buildRow(
+                          Icons.watch_later_outlined,
+                          Colors.white,
+                          //change to add actual startTime
+                          _formatTripDate(trip!.plannedStartTime),
+                        ),
+                        _buildRowFuture(
+                          Icons.radio_button_on_sharp,
+                          Colors.lightBlueAccent,
+                          getLocationName(
+                            trip!.startLatitude,
+                            trip!.startLongitude,
+                          ),
+                        ),
+
+                        _buildRowFuture(
+                          Icons.radio_button_on_sharp,
+                          Colors.greenAccent,
+                          getLocationName(
+                            trip!.destLatitude,
+                            trip!.destLongitude,
+                          ),
+                        ),
+                        // _buildRow(
+                        //   Icons.radio_button_on_sharp,
+                        //   Colors.lightBlueAccent,
+                        //   trip.startPoint,
+                        // ),
+                        // _buildRow(
+                        //   Icons.radio_button_on_sharp,
+                        //   Colors.greenAccent,
+                        //   trip.destPoint,
+                        // ),
+                        if (trip!.endTime != null)
+                          _buildRow(
+                            Icons.check_circle_outlined,
+                            Colors.white,
+                            _formatTripDate(trip!.endTime!),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 15),
+                  _showVehicle(car, carIsLoading),
+                  //   _VehicleCard(car: car!),
+                  SizedBox(height: 15),
+                  // start trip button
+                  canStartTrip
+                      ? ElevatedButton(
+                          onPressed: () {
+                            buttonActionLoading ? null : _startTrip();
+                            print('start trip');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF2935E0),
+                            minimumSize: const Size(150, 50),
+                          ),
+                          child: Text(
+                            "Start Trip",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        )
+                      : OutlinedButton(
+                          onPressed: () {},
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(150, 50),
+                            side: BorderSide(width: 2, color: Colors.white),
+                          ),
+                          child: Text(
+                            'Start Trip',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Widget _showVehicle(Car? car, bool carIsLoading) {
+  //final Car car;
+  // final bool carIsLoading;
+  // const _showVehicle({required this.car, required this.carIsLoading});
+  if (car == null) {
+    return const SizedBox.shrink();
+  }
+  if (carIsLoading) {
+    return const CircularProgressIndicator();
+  } else {
+    return _VehicleCard(car: car);
+  }
+}
+
+class _VehicleCard extends StatelessWidget {
+  const _VehicleCard({required this.car});
+
+  //final Trip trip;
+  final Car car;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40.0)),
+      color: Color(0x26FFFFFF),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: Text(
+                'Vehicle Details',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Divider(height: 5, thickness: 2, color: Color(0xFF363636)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Model:',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF979797),
+                    ),
+                  ),
+                  Text(
+                    'Chevrolet',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'Plate:',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF979797),
+                    ),
+                  ),
+                  Text(
+                    car.plateNo,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'Color:',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF979797),
+                    ),
+                  ),
+                  Text(
+                    car.color,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+TableRow _buildRow(IconData icon, Color iconColor, String data) {
+  return TableRow(
+    children: <Widget>[
+      Icon(icon, size: 23, color: iconColor),
+      SizedBox(width: 20),
+      Text(
+        data,
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+      ),
+    ],
+  );
+}
+
+TableRow _buildRowFuture(
+  IconData icon,
+  Color iconColor,
+  Future<String> futureData,
+) {
+  return TableRow(
+    children: <Widget>[
+      Icon(icon, size: 23, color: iconColor),
+      SizedBox(width: 20),
+
+      FutureBuilder<String>(
+        future: futureData,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Text(
+              "Loading...",
+              style: TextStyle(fontSize: 20, color: Colors.white70),
+            );
+          }
+
+          return Text(
+            snapshot.data ?? "Unknown",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          );
+        },
+      ),
+    ],
+  );
+}
