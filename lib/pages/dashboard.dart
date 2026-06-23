@@ -6,6 +6,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:guardian_drive_mobile/models/band.dart';
 import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
@@ -33,14 +35,14 @@ class _DashboardState extends State<Dashboard> {
   double? lat;
   double? lng;
   List<LatLng> route = [];
-  int bpm = 72; // default test value TODO: Best to be changes to driver avg
-  int battery = 0;
-  bool isConnected = false;
+  // int bpm = 72;
+  // int battery = 0;
+  // bool isConnected = false;
   String username = "";
   String startLocName = "";
   String destLocName = "";
   Timer? timer;
-  Random random = Random();
+  // Random random = Random();
 
   Trip? ongoingTrip;
   TripLocation? currentLocation;
@@ -57,9 +59,23 @@ class _DashboardState extends State<Dashboard> {
   // ------💡 TESTINGGGGG -----
   final tripId = 17;
 
+  StreamSubscription? bandBleSub;
+  StreamSubscription? carBleSub;
   @override
   void initState() {
     super.initState();
+    bandBleSub = BandBleService.instance.telemetryController.stream.listen((
+      data,
+    ) {
+      print("BAND BLE DATA FROM DASHBOARD: $data");
+
+      // you can update UI here too using setState if needed
+    });
+    carBleSub = CarBleService.instance.commandController.stream.listen((data) {
+      print("CAR BLE DATA FROM DASHBOARD: $data");
+
+      // you can update UI here too using setState if needed
+    });
     initDashboard();
     startLiveBPM();
     // startTracking();
@@ -74,6 +90,8 @@ class _DashboardState extends State<Dashboard> {
   void dispose() {
     _sub?.cancel(); // always cancel on dispose
     timer?.cancel();
+    carBleSub?.cancel();
+    bandBleSub?.cancel();
     super.dispose();
   }
 
@@ -114,7 +132,7 @@ class _DashboardState extends State<Dashboard> {
     final token = await StorageService.getToken();
 
     await HomeService.getDeviceId();
-    await getBandData();
+    // await getBandData();
     await getusername();
     await loadTripLocation(token!);
     await loadPlannedTrips();
@@ -187,32 +205,32 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  Future<void> getBandData() async {
-    final result = await WearableService.getWearableBand();
+  // Future<void> getBandData() async {
+  //   final result = await WearableService.getWearableBand();
 
-    if (result["status"] == "no_band") {
-      setState(() {
-        battery = 0;
-        isConnected = false;
-      });
-      return;
-    }
+  //   if (result["status"] == "no_band") {
+  //     setState(() {
+  //       battery = 0;
+  //       isConnected = false;
+  //     });
+  //     return;
+  //   }
 
-    if (result["status"] == "error") {
-      setState(() {
-        battery = 0;
-        isConnected = false;
-      });
-      return;
-    }
+  //   if (result["status"] == "error") {
+  //     setState(() {
+  //       battery = 0;
+  //       isConnected = false;
+  //     });
+  //     return;
+  //   }
 
-    final WearableBand band = result["data"];
+  //   final WearableBand band = result["data"];
 
-    setState(() {
-      battery = band.batteryLevel;
-      isConnected = band.isConnected;
-    });
-  }
+  //   setState(() {
+  //     battery = band.batteryLevel;
+  //     isConnected = band.isConnected;
+  //   });
+  // }
 
   void startLiveBPM() {
     timer = Timer.periodic(ReloadBpmRange, (_) {
@@ -237,8 +255,8 @@ class _DashboardState extends State<Dashboard> {
     });
   }
 */
-  String getStatus() {
-    if (!isConnected) return "NO BAND";
+  String getStatus(double bpm) {
+    if (!BandBleService.instance.isConnected) return "NO BAND";
 
     if (bpm >= 60 && bpm <= 100) {
       return "FIT TO DRIVE";
@@ -247,7 +265,8 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  Color getStatusColor() {
+  Color getStatusColor(double bpm) {
+    if (!BandBleService.instance.isConnected) return Colors.grey;
     if (bpm >= 60 && bpm <= 100) {
       return Colors.greenAccent;
     } else {
@@ -257,7 +276,7 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
-    double percent = bpm / 150;
+    // double percent = bpm / 150;
     final bounds = route.isNotEmpty
         ? LatLngBounds.fromPoints(route)
         : LatLngBounds.fromPoints([
@@ -295,76 +314,109 @@ class _DashboardState extends State<Dashboard> {
 
                 SizedBox(height: 20),
 
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: Colors.white.withOpacity(0.08),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                ValueListenableBuilder(
+                  valueListenable: BandBleService.instance.bpmNotifier,
+                  builder: (context, bpm, child) {
+                    double percent = bpm / 150;
+                    return Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.white.withOpacity(0.08),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            getStatus(),
-                            style: TextStyle(
-                              color: getStatusColor(),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                          ValueListenableBuilder(
+                            valueListenable:
+                                BandBleService.instance.connectionNotifier,
+                            builder: (context, bandConnected, child) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Text(
+                                  //   getStatus(),
+                                  //   style: TextStyle(
+                                  //     color: getStatusColor(),
+                                  //     fontWeight: FontWeight.bold,
+                                  //     fontSize: 16,
+                                  //   ),
+                                  // ),
+                                  Text(
+                                    getStatus(bpm),
+                                    style: TextStyle(
+                                      color: getStatusColor(bpm),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+
+                                  SizedBox(height: 10),
+                                  Text(
+                                    bandConnected
+                                        ? "Band Connected"
+                                        : "Disconnected",
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+
+                                  SizedBox(height: 6),
+                                  ValueListenableBuilder<double>(
+                                    valueListenable:
+                                        BandBleService.instance.battNotifier,
+                                    builder: (context, batt, _) {
+                                      return Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          "$batt%",
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
                           ),
-                          SizedBox(height: 10),
-                          Text(
-                            isConnected ? "Band Connected" : "Disconnected",
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          SizedBox(height: 6),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              "$battery%",
-                              style: TextStyle(color: Colors.white),
+
+                          CircularPercentIndicator(
+                            radius: 55,
+                            lineWidth: 8,
+                            percent: percent.clamp(0.0, 1.0),
+                            animation: true,
+                            progressColor: getStatusColor(bpm),
+                            backgroundColor: Colors.white24,
+                            center: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "$bpm",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+
+                                Text(
+                                  "BPM",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-
-                      CircularPercentIndicator(
-                        radius: 55,
-                        lineWidth: 8,
-                        percent: percent.clamp(0.0, 1.0),
-                        animation: true,
-                        progressColor: getStatusColor(),
-                        backgroundColor: Colors.white24,
-                        center: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "$bpm",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              "BPM",
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
 
                 SizedBox(height: 30),
@@ -378,10 +430,31 @@ class _DashboardState extends State<Dashboard> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(width: 550),
+                    // SizedBox(width: 530),
+                    ElevatedButton.icon(
+                      label: Text('Connect to band'),
+                      onPressed: () {
+                        BandBleService.instance.scanAndConnect();
+                      },
+                    ),
+                    ElevatedButton.icon(
+                      label: Text('Connect to Car'),
+                      onPressed: () {
+                        CarBleService.instance.scanAndConnect();
+                      },
+                    ),
                     ElevatedButton.icon(
                       onPressed: () => {
-                        Navigator.pushNamed(context, '/ongoing-trip'),
+                        Navigator.pushNamed(
+                          context,
+                          '/ongoing-trip',
+                          arguments: {
+                            "destLatitude": ongoingTrip!.destLatitude,
+                            "destLongitude": ongoingTrip!.destLongitude,
+                            "startLatitude": ongoingTrip!.startLatitude,
+                            "startLongitude": ongoingTrip!.startLongitude,
+                          },
+                        ),
                       },
                       label: Text('Go to map'),
                       icon: Icon(Icons.arrow_forward_rounded),
