@@ -1,0 +1,270 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+
+class BandBleService {
+  // SINGLETON
+  static final BandBleService instance = BandBleService._internal();
+  BandBleService._internal();
+
+  // The actual BLE library object
+  final FlutterReactiveBle _ble = FlutterReactiveBle();
+
+  // UUIDs
+  static const serviceUuid = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
+
+  static const txUuid = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E';
+
+  static const rxUuid = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E';
+
+  String? _deviceId; // save device id here (the band)
+
+  StreamSubscription? _scanSubscription; // Represents the scanning process
+  StreamSubscription?
+  _connectionSubscription; // Represents the connection process
+  StreamSubscription? _notifySubscription; // Listens for notifications
+
+  // bool isConnected = false;
+  final ValueNotifier<bool> connectionNotifier = ValueNotifier(false);
+  bool get isConnected => connectionNotifier.value;
+  set isConnected(bool val) => connectionNotifier.value = val;
+
+  int _reconnectAttempts = 0;
+
+  static const int maxReconnectAttempts = 10; // 10 × 3 sec = 30 sec
+
+  final StreamController<String> telemetryController =
+      StreamController.broadcast();
+
+  bool _readyForReadings = false;
+
+  final ValueNotifier<double> bpmNotifier = ValueNotifier(0.0);
+  // final ValueNotifier<double> spO2Notifier = ValueNotifier(0.0);
+  // final ValueNotifier<double> tempNotifier = ValueNotifier(0.0);
+  final ValueNotifier<double> battNotifier = ValueNotifier(0.0);
+
+  // starts scanning
+  Future<void> scanAndConnect() async {
+    print("scan and connect function called");
+    _scanSubscription?.cancel();
+
+    _scanSubscription = _ble
+        .scanForDevices(
+          // starts ble discovery
+          withServices: [
+            Uuid.parse(serviceUuid),
+          ], // only search for devices advertising your service
+          scanMode: ScanMode.lowLatency,
+        )
+        .listen((device) {
+          print("Found device");
+
+          if (device.name == "ESP32_BAND") {
+            print("Found $device.name");
+
+            _deviceId = device.id;
+
+            _scanSubscription?.cancel();
+
+            connect(device.id); // connects to esp32
+          }
+        });
+  }
+
+  Future<void> connect(String deviceId) async {
+    _connectionSubscription?.cancel();
+    print("CONNECT FUNCTION CALLED");
+    _connectionSubscription = _ble
+        .connectToDevice(
+          id: deviceId,
+          connectionTimeout: const Duration(seconds: 10),
+        )
+        .listen(
+          (connectionState) async {
+            if (connectionState.connectionState ==
+                DeviceConnectionState.connected) {
+              print("CONNECTION SUCCESSFUL");
+              isConnected = true;
+              _readyForReadings = false;
+              _reconnectAttempts = 0;
+              print("# OF AT ATTEMPTS RESETEDDDD $_reconnectAttempts");
+
+              try {
+                final mtu = await _ble.requestMtu(deviceId: deviceId, mtu: 247);
+                print("Negotiated MTU: $mtu");
+                if (mtu < 100) {
+                  // MTU too small — JSON won't fit in one packet
+                  // usable payload = mtu - 3 bytes ATT overhead
+                  print(
+                    "WARNING: MTU too low ($mtu), fragmentation will occur",
+                  );
+                  telemetryController.add("MTU_LOW"); // notify UI if needed
+                }
+              } catch (e) {
+                print("MTU negotiation failed: $e");
+              }
+              _subscribeToNotifications();
+            }
+
+            if (connectionState.connectionState ==
+                DeviceConnectionState.disconnected) {
+              print("CONNECTION STATE: DISCONNECTED");
+
+              isConnected = false;
+
+              _reconnect();
+            }
+          },
+          onError: (e) {
+            print("Connection Error: $e");
+
+            isConnected = false;
+
+            _reconnect();
+          },
+        );
+  }
+
+  StringBuffer _buffer = StringBuffer();
+  void _subscribeToNotifications() {
+    final characteristic = QualifiedCharacteristic(
+      serviceId: Uuid.parse(serviceUuid),
+      characteristicId: Uuid.parse(txUuid),
+      deviceId: _deviceId!,
+    );
+
+    _notifySubscription?.cancel();
+    _notifySubscription = _ble.subscribeToCharacteristic(characteristic).listen((
+      data,
+    ) async {
+      // every notification triggers this
+      final message = utf8.decode(data).trim(); // converts bytes to text
+      print("CHUNK: $message");
+
+      // HANDSHAKE PHASE
+      if (!_readyForReadings) {
+        if (message == "P") {
+          print("Band precheck passed");
+          await sendCommand("R");
+          print("Mobile ready, sent R");
+          telemetryController.add("CONNECTION ESTABLISHED SUCCESSFULLY");
+          _readyForReadings = true;
+        } else if (message == "F") {
+          print("Band precheck FAILED");
+          telemetryController.add(
+            "CONNECTION FALIURE, PLEASE CONTACT YOUR FLEET MANAGER",
+          );
+        }
+        return;
+      }
+      if (message == "AD") {
+        print("PLEASE ADJUST YOUR BAND");
+        telemetryController.add("PLEASE ADJUST YOUR BAND");
+        return;
+      }
+      if (message == "ET") {
+        print("Not adjusted for too long, will enter sleep mode");
+        telemetryController.add(
+          "NOT ADJUSTED FOR TOO LONG -> ENTERED SLEEP MODE",
+        );
+        await sendCommand("E");
+        print("SENT TO BAND END TRIP, TO ENTER SLEEP MODE");
+        telemetryController.add("SENT TO BAND END TRIP, TO ENTER SLEEP MODE");
+        return;
+      }
+      // STARTS READING
+      _buffer.write(message);
+
+      // wait until we have at least one full message
+      String text = _buffer.toString();
+      print("BUFFER NOW: ${text}");
+
+      /*** */
+      // Safety net: if we never find a closing brace and the buffer
+      // keeps growing (e.g. dropped packets), don't leak memory forever.
+      const maxBufferLength = 512;
+      if (text.length > maxBufferLength) {
+        final lastOpen = text.lastIndexOf('{');
+        print("Buffer overflow (${text.length} chars) - discarding stale data");
+        text = lastOpen == -1 ? '' : text.substring(lastOpen);
+      }
+      /*** */
+
+      // Try to extract ALL complete JSON objects
+      while (true) {
+        int start = text.indexOf('{');
+        if (start == -1) {
+          //if the buffer contains no { at all (pure garbage), it flushes cleanly rather than crashing
+          break;
+        }
+        int end = text.indexOf('}', start);
+
+        if (start == -1 || end == -1) break;
+
+        final jsonStr = text.substring(start, end + 1);
+
+        try {
+          final Map<String, dynamic> data = jsonDecode(jsonStr);
+          telemetryController.add(data.toString());
+          print("BATT: ${data['BATT']}");
+          print("SPO2: ${data['spO2']}");
+          print("BPM: ${data['bpm']}");
+          print("TEMP: ${data['temp']}");
+
+          // UPDATE NOTIFIERS ↓
+          bpmNotifier.value = (data['bpm'] ?? 0).toDouble();
+          battNotifier.value = (data['BATT'] ?? 0).toDouble();
+        } catch (e) {
+          print("Invalid JSON: $jsonStr");
+        }
+
+        text = text.substring(end + 1);
+      }
+
+      // keep incomplete part
+      _buffer.clear();
+      _buffer.write(text);
+    });
+  }
+
+  Future<void> sendCommand(String command) async {
+    if (_deviceId == null) return;
+
+    final characteristic = QualifiedCharacteristic(
+      serviceId: Uuid.parse(serviceUuid),
+      characteristicId: Uuid.parse(rxUuid),
+      deviceId: _deviceId!,
+    );
+
+    await _ble.writeCharacteristicWithoutResponse(
+      characteristic,
+      value: utf8.encode(command),
+    );
+  }
+
+  void _reconnect() {
+    if (_deviceId == null) return;
+    // ADD 1 ATTEMPT TO RECONNECT
+    if (_reconnectAttempts >= maxReconnectAttempts) {
+      print("Reconnect timeout");
+      telemetryController.add(
+        "Connection lost. Unable to reconnect. Please check the band and try again.",
+      );
+      return;
+    }
+    _reconnectAttempts++;
+    print("# OF AT ATTEMPTS NOW $_reconnectAttempts");
+
+    Future.delayed(const Duration(seconds: 3), () {
+      print("Trying reconnect...");
+      connect(_deviceId!);
+    });
+  }
+
+  void dispose() {
+    _scanSubscription?.cancel();
+    _connectionSubscription?.cancel();
+    _notifySubscription?.cancel();
+  }
+}

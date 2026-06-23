@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
+import 'package:guardian_drive_mobile/widgets/future_table_row.dart';
 import 'package:intl/intl.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/models/car.dart';
@@ -7,6 +9,8 @@ import '../services/trip_service.dart';
 import '../services/car_service.dart';
 import '../widgets/map.dart' as MapDrawer;
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
+import '../services/car_ble_service.dart';
+import '../services/band_ble_service.dart';
 
 String _formatTripDate(DateTime date) {
   return DateFormat("MMM d, yyyy 'at' h:mm a").format(date);
@@ -38,6 +42,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
   bool tripIsLoading = true;
   bool carIsLoading = true;
   bool buttonActionLoading = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -80,40 +85,74 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       });
     }
   }
-  Future<void> _startTrip() async{
-    if (trip==null) return;
+
+  Future<void> _startTrip() async {
+    if (trip == null) return;
     setState(() {
-      buttonActionLoading=true;
+      buttonActionLoading = true;
     });
-    try{
-      final updatedTrip = await TripService().patchTrip(trip!.tripId,
-        TripStatus.ONGOING);
+    try {
+      final updatedTrip = await TripService().patchTrip(
+        trip!.tripId,
+        TripStatus.ONGOING,
+      );
       setState(() {
         trip = updatedTrip;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Trip started successfully'),
-        ),
+        const SnackBar(content: Text('Trip started successfully')),
       );
-
-    }catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       setState(() {
         buttonActionLoading = false;
       });
     }
   }
+
+  void _showNotConnectedDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Center(child: Text('Connection Required')),
+        content: Text(
+          message,
+          style: TextStyle(fontSize: 16),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: Color.fromARGB(255, 1, 21, 51),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
     if (tripIsLoading || trip == null) {
@@ -193,7 +232,8 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                         1: FixedColumnWidth(20),
                         2: IntrinsicColumnWidth(), // text column (tight)
                       },
-                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      defaultVerticalAlignment:
+                          TableCellVerticalAlignment.middle,
                       children: [
                         _buildRow(
                           Icons.watch_later_outlined,
@@ -201,7 +241,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                           //change to add actual startTime
                           _formatTripDate(trip!.plannedStartTime),
                         ),
-                        _buildRowFuture(
+                        buildRowFuture(
                           Icons.radio_button_on_sharp,
                           Colors.lightBlueAccent,
                           getLocationName(
@@ -210,7 +250,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                           ),
                         ),
 
-                        _buildRowFuture(
+                        buildRowFuture(
                           Icons.radio_button_on_sharp,
                           Colors.greenAccent,
                           getLocationName(
@@ -241,12 +281,30 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   _showVehicle(car, carIsLoading),
                   //   _VehicleCard(car: car!),
                   SizedBox(height: 15),
-// start trip button
+                  // start trip button
                   canStartTrip
                       ? ElevatedButton(
-
                           onPressed: () {
-                            buttonActionLoading? null:_startTrip();
+                            if (!CarBleService.instance.isConnected ||
+                                !BandBleService.instance.isConnected) {
+                              _showNotConnectedDialog(
+                                "Please connect both the band and vehicle first",
+                              );
+                              return; // important — stop here
+                            }
+                            if (!BandBleService.instance.isConnected) {
+                              _showNotConnectedDialog(
+                                "Please connect the driver band first",
+                              );
+                              return;
+                            }
+                            if (!CarBleService.instance.isConnected) {
+                              _showNotConnectedDialog(
+                                "Please connect the vehicle first",
+                              );
+                              return;
+                            }
+                            buttonActionLoading ? null : _startTrip();
                             print('start trip');
                           },
                           style: ElevatedButton.styleFrom(
@@ -396,40 +454,6 @@ TableRow _buildRow(IconData icon, Color iconColor, String data) {
           fontWeight: FontWeight.w500,
           color: Colors.white,
         ),
-      ),
-    ],
-  );
-}
-
-TableRow _buildRowFuture(
-  IconData icon,
-  Color iconColor,
-  Future<String> futureData,
-) {
-  return TableRow(
-    children: <Widget>[
-      Icon(icon, size: 23, color: iconColor),
-      SizedBox(width: 20),
-
-      FutureBuilder<String>(
-        future: futureData,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Text(
-              "Loading...",
-              style: TextStyle(fontSize: 20, color: Colors.white70),
-            );
-          }
-
-          return Text(
-            snapshot.data ?? "Unknown",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-            ),
-          );
-        },
       ),
     ],
   );
