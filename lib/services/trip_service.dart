@@ -11,7 +11,7 @@ import 'package:guardian_drive_mobile/services/user_service.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/hive_store.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/vitals_aggregator_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
-import 'package:guardian_drive_mobile/widgets/alerts_actions_popups.dart';
+import 'package:guardian_drive_mobile/widgets/health_alert_popup.dart';
 
 import '../models/trip.dart';
 import '../models/trips_response.dart';
@@ -20,6 +20,7 @@ import 'api_client_service.dart' as api_service;
 
 class TripService {
   static const baseUrl = api_service.ApiClient.baseUrl;
+  int? _activeTripId;
 
   // Singleton -- for one single instance shared across the entire app
   static final TripService instance = TripService._internal();
@@ -48,8 +49,9 @@ class TripService {
 
   // ---------------- Trip Services ----------------
 
-  Future<void> startTrip({int? tripId, bool testMode = false}) async {
+  Future<void> startTrip({required int tripId, bool testMode = false}) async {
     traceLog('TripService: trip started', tripId);
+    _activeTripId = tripId;
 
     DriverHealthThresholds thresholds = await MedicalInfoService()
         .getDriverThresholds();
@@ -92,8 +94,12 @@ class TripService {
     });
   }
 
-  Future<void> endTrip(int? tripId) async {
-    traceLog('TripService: trip ended', tripId);
+  Future<void> endTrip() async {
+    if (_activeTripId == null) {
+      traceLog('endTrip called but no active trip');
+      return;
+    }
+    traceLog('TripService: trip ended', _activeTripId);
     // Stop the stream    <<<<-------------- later would be stopping the BLE stream
     await _vitalsSubscription?.cancel();
     _vitalsSubscription = null;
@@ -104,11 +110,13 @@ class TripService {
     _healthMonitor?.stop();
     _healthMonitor = null;
 
+    _activeTripId = null;
+
     if (tripAvg == null) return;
 
     const readings = 1;
     // send to user Service
-    // final readings = await UserService.createHealthReadings(tripAvg, tripId);
+    // final readings = await UserService.createHealthReadings(tripAvg, _activeTripId);
     if (readings != null) {
       // or do it at finalize() ?
       _vitalsAggregator = null;

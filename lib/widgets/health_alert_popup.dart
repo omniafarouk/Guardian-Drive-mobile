@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/main.dart';
+import 'package:guardian_drive_mobile/services/trip_service.dart';
+import 'package:guardian_drive_mobile/utils/alert_sound_activiator.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 
 void showHealthAlertDialog(String conditionName) {
@@ -15,7 +18,7 @@ void showHealthAlertDialog(String conditionName) {
     builder: (_) => _HealthAlertDialog(conditionName: conditionName),
   ).then((stopTrip) {
     if (stopTrip == true) {
-      // TripService().endTrip(null);
+      TripService().endTrip();
       traceLog('STOP TRIP AND CALL EMERGENCY!!');
     }
   });
@@ -55,12 +58,13 @@ class _HealthAlertDialogState extends State<_HealthAlertDialog> {
   }
 
   void _playAlertSound() {
-    // TODO: AudioPlayer().play(AssetSource('alert.mp3'));
+    AlertSoundActiviator.instance.playEmergencyAlert();
   }
 
   void _dismiss({required bool stopTrip}) {
     _soundTimer.cancel();
     _countdownTimer.cancel();
+    AlertSoundActiviator.instance.stop();
     if (mounted) Navigator.pop(context, stopTrip);
   }
 

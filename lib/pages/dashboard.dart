@@ -624,8 +624,7 @@ class _DashboardState extends State<Dashboard> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    await TripService().endTrip(tripId);
-                    print('Trip ended');
+                    await TripService().endTrip();
                   },
                   child: Text('TEST: End Trip'),
                 ),

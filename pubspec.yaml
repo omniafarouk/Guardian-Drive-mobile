@@ -46,6 +46,7 @@ dependencies:
   hive_flutter: ^1.1.0
   app_links: ^7.0.0
   logger: ^2.4.0
+  audioplayers: ^6.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -53,7 +54,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_launcher_icons: ^0.13.1  # ← move it here
+  flutter_launcher_icons: ^0.13.1
   
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -68,8 +69,10 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/logo2.png"
-  min_sdk_android: 21
+  image_path: "assets/appIcon.png"
+  adaptive_icon_background: "#000000"        # your dark blue fills the transparency
+  adaptive_icon_foreground: "assets/appIcon.png"  
+  min_sdk_android: 26
 
 # The following section is specific to Flutter packages.
 flutter:

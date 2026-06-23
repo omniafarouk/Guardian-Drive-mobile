@@ -73,9 +73,12 @@ class HealthMonitorService {
       traceLog('Send Warning Notification To Driver :', reading.toString());
       String? conditionName = triggerEvaluation.conditionName;
       conditionName ??= "Unknown Condition?!!";
-      ScaffoldMessenger.of(
-        navigatorKey.currentContext!,
-      ).showSnackBar(SnackBar(content: Text('Health alert: $conditionName')));
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        SnackBar(
+          content: Text('Health alert: $conditionName'),
+          duration: Duration(seconds: 20),
+        ),
+      );
     } else if (triggerEvaluation.tier == AlertTier.alertTrigger) {
       traceLog(
         'Check Driver For response if not Trigger Alert : ',
