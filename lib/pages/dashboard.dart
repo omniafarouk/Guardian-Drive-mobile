@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:guardian_drive_mobile/models/band.dart';
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
@@ -59,12 +58,14 @@ class _DashboardState extends State<Dashboard> {
 
   // ------💡 TESTINGGGGG -----
   final tripId = 17;
+  late bool floatingActionButton;
 
   StreamSubscription? bandBleSub;
   StreamSubscription? carBleSub;
   @override
   void initState() {
     super.initState();
+    floatingActionButton = TripService().isTripActive;
     bandBleSub = BandBleService.instance.messagesController.stream.listen((
       data,
     ) {
@@ -242,6 +243,7 @@ class _DashboardState extends State<Dashboard> {
       if (!mounted) return;
       setState(() {
         bpm = _latestReading?.heartRate ?? bpm;
+        // TODO : SHOULD UPDATE REST OF THE READINGS TOO?
       }); // just rebuild — _latestReading already has the latest
     });
   }
@@ -280,7 +282,7 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // double percent = bpm / 150;
+    double percent = bpm / 150;
     final bounds = route.isNotEmpty
         ? LatLngBounds.fromPoints(route)
         : LatLngBounds.fromPoints([
@@ -318,111 +320,102 @@ class _DashboardState extends State<Dashboard> {
 
                 SizedBox(height: 20),
 
-                ValueListenableBuilder(
-                  valueListenable: BandBleService.instance.bpmNotifier,
-                  builder: (context, bpm, child) {
-                    double percent = bpm / 150;
-                    return Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.white.withOpacity(0.08),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ValueListenableBuilder(
-                            valueListenable:
-                                BandBleService.instance.connectionNotifier,
-                            builder: (context, bandConnected, child) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Text(
-                                  //   getStatus(),
-                                  //   style: TextStyle(
-                                  //     color: getStatusColor(),
-                                  //     fontWeight: FontWeight.bold,
-                                  //     fontSize: 16,
-                                  //   ),
-                                  // ),
-                                  Text(
-                                    getStatus(bpm),
-                                    style: TextStyle(
-                                      color: getStatusColor(bpm),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ValueListenableBuilder(
+                        valueListenable:
+                            BandBleService.instance.connectionNotifier,
+                        builder: (context, bandConnected, child) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Text(
+                              //   getStatus(),
+                              //   style: TextStyle(
+                              //     color: getStatusColor(),
+                              //     fontWeight: FontWeight.bold,
+                              //     fontSize: 16,
+                              //   ),
+                              // ),
+                              Text(
+                                getStatus(bpm),
+                                style: TextStyle(
+                                  color: getStatusColor(bpm),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+
+                              SizedBox(height: 10),
+                              Text(
+                                bandConnected
+                                    ? "Band Connected"
+                                    : "Disconnected",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+
+                              SizedBox(height: 6),
+                              ValueListenableBuilder<double>(
+                                valueListenable:
+                                    BandBleService.instance.battNotifier,
+                                builder: (context, batt, _) {
+                                  return Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
                                     ),
-                                  ),
-
-                                  SizedBox(height: 10),
-                                  Text(
-                                    bandConnected
-                                        ? "Band Connected"
-                                        : "Disconnected",
-                                    style: TextStyle(color: Colors.white70),
-                                  ),
-
-                                  SizedBox(height: 6),
-                                  ValueListenableBuilder<double>(
-                                    valueListenable:
-                                        BandBleService.instance.battNotifier,
-                                    builder: (context, batt, _) {
-                                      return Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "$batt%",
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-
-                          CircularPercentIndicator(
-                            radius: 55,
-                            lineWidth: 8,
-                            percent: percent.clamp(0.0, 1.0),
-                            animation: true,
-                            progressColor: getStatusColor(bpm),
-                            backgroundColor: Colors.white24,
-                            center: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "$bpm",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-
-                                Text(
-                                  "BPM",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      "$batt%",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
 
+                      CircularPercentIndicator(
+                        radius: 55,
+                        lineWidth: 8,
+                        percent: percent.clamp(0.0, 1.0),
+                        animation: true,
+                        progressColor: getStatusColor(bpm),
+                        backgroundColor: Colors.white24,
+                        center: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "$bpm",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            Text(
+                              "BPM",
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 SizedBox(height: 30),
 
                 Row(

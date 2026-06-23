@@ -21,6 +21,7 @@ import 'api_client_service.dart' as api_service;
 class TripService {
   static const baseUrl = api_service.ApiClient.baseUrl;
   int? _activeTripId;
+  bool isTripActive = false;
 
   // Singleton -- for one single instance shared across the entire app
   static final TripService instance = TripService._internal();
@@ -48,10 +49,19 @@ class TripService {
   HealthMonitorService? _healthMonitor;
 
   // ---------------- Trip Services ----------------
+  void activateTrip(int tripId) {
+    _activeTripId = tripId;
+    isTripActive = true;
+  }
+
+  void clearActiveTrip() {
+    _activeTripId = null;
+    isTripActive = false;
+  }
 
   Future<void> startTrip({required int tripId, bool testMode = false}) async {
     traceLog('TripService: trip started', tripId);
-    _activeTripId = tripId;
+    activateTrip(tripId);
 
     DriverHealthThresholds thresholds = await MedicalInfoService()
         .getDriverThresholds();
@@ -96,6 +106,7 @@ class TripService {
 
   Future<void> endTrip() async {
     if (_activeTripId == null) {
+      clearActiveTrip();
       traceLog('endTrip called but no active trip');
       return;
     }
@@ -110,8 +121,6 @@ class TripService {
     _healthMonitor?.stop();
     _healthMonitor = null;
 
-    _activeTripId = null;
-
     if (tripAvg == null) return;
 
     const readings = 1;
@@ -119,6 +128,7 @@ class TripService {
     // final readings = await UserService.createHealthReadings(tripAvg, _activeTripId);
     if (readings != null) {
       // or do it at finalize() ?
+      clearActiveTrip();
       _vitalsAggregator = null;
       traceLog(
         'created Health readings at database, Deleting hive store',
