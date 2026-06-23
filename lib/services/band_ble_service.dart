@@ -42,6 +42,10 @@ class BandBleService {
 
   bool _readyForReadings = false;
 
+  bool _precheckPassed = false;
+
+  bool get precheckPassed => _precheckPassed;
+
   final ValueNotifier<double> bpmNotifier = ValueNotifier(0.0);
   // final ValueNotifier<double> spO2Notifier = ValueNotifier(0.0);
   // final ValueNotifier<double> tempNotifier = ValueNotifier(0.0);
@@ -149,12 +153,14 @@ class BandBleService {
       if (!_readyForReadings) {
         if (message == "P") {
           print("Band precheck passed");
+          _precheckPassed = true;
           await sendCommand("R");
           print("Mobile ready, sent R");
           messagesController.add("CONNECTION ESTABLISHED SUCCESSFULLY");
           _readyForReadings = true;
         } else if (message == "F") {
           print("Band precheck FAILED");
+          _precheckPassed = false;
           messagesController.add(
             "CONNECTION FALIURE, PLEASE CONTACT YOUR FLEET MANAGER",
           );
