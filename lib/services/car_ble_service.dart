@@ -31,6 +31,9 @@ class CarBleService {
   bool get isConnected => connectionNotifier.value;
   set isConnected(bool val) => connectionNotifier.value = val;
 
+  bool _precheckPassed = false;
+  bool get precheckPassed => _precheckPassed;
+
   int _reconnectAttempts = 0;
 
   static const int maxReconnectAttempts = 10; // 10 × 3 sec = 30 sec
@@ -69,6 +72,18 @@ class CarBleService {
     print("[CAR] SEVERE CASE — sending E to car");
     await _sendCommand("E");
     commandController.add("EMERGENCY_SENT");
+  }
+
+  Future<void> sendPredriveCheckPassed() async {
+    if (!isConnected) {
+      print("[CAR] cannot send predrive check success — not connected");
+      commandController.add("PASS_SEND_FAILED");
+      return;
+    }
+
+    print("Sent predrive check to car");
+    await _sendCommand("P");
+    commandController.add("PASS_CAR_CHECK");
   }
 
   Future<void> _connect(String deviceId) async {
@@ -122,6 +137,16 @@ class CarBleService {
         print("[CAR] Received: $message");
 
         switch (message) {
+          case "P":
+            print("Car Hardware precheck passed, car can move now");
+            commandController.add("CAR CONNECTION ESTABLISHED SUCCESSFULLY");
+            _precheckPassed = true;
+          case "F":
+            print("Car precheck failed");
+            _precheckPassed = false;
+            commandController.add(
+              "CONNECTION FALIURE, PLEASE CONTACT YOUR FLEET MANAGER",
+            );
           case "C":
             // Car detected a crash via its own sensors
             print("[CAR] CRASH DETECTED");
