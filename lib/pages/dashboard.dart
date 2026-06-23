@@ -53,7 +53,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
-    bandBleSub = BandBleService.instance.telemetryController.stream.listen((
+    bandBleSub = BandBleService.instance.messagesController.stream.listen((
       data,
     ) {
       print("BAND BLE DATA FROM DASHBOARD: $data");

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 
 class BandBleService {
   // SINGLETON
@@ -34,7 +35,9 @@ class BandBleService {
 
   static const int maxReconnectAttempts = 10; // 10 × 3 sec = 30 sec
 
-  final StreamController<String> telemetryController =
+  final StreamController<VitalReadings> telemetryController =
+      StreamController.broadcast();
+  final StreamController<String> messagesController =
       StreamController.broadcast();
 
   bool _readyForReadings = false;
@@ -99,7 +102,7 @@ class BandBleService {
                   print(
                     "WARNING: MTU too low ($mtu), fragmentation will occur",
                   );
-                  telemetryController.add("MTU_LOW"); // notify UI if needed
+                  messagesController.add("MTU_LOW"); // notify UI if needed
                 }
               } catch (e) {
                 print("MTU negotiation failed: $e");
@@ -148,11 +151,11 @@ class BandBleService {
           print("Band precheck passed");
           await sendCommand("R");
           print("Mobile ready, sent R");
-          telemetryController.add("CONNECTION ESTABLISHED SUCCESSFULLY");
+          messagesController.add("CONNECTION ESTABLISHED SUCCESSFULLY");
           _readyForReadings = true;
         } else if (message == "F") {
           print("Band precheck FAILED");
-          telemetryController.add(
+          messagesController.add(
             "CONNECTION FALIURE, PLEASE CONTACT YOUR FLEET MANAGER",
           );
         }
@@ -160,17 +163,17 @@ class BandBleService {
       }
       if (message == "AD") {
         print("PLEASE ADJUST YOUR BAND");
-        telemetryController.add("PLEASE ADJUST YOUR BAND");
+        messagesController.add("PLEASE ADJUST YOUR BAND");
         return;
       }
       if (message == "ET") {
         print("Not adjusted for too long, will enter sleep mode");
-        telemetryController.add(
+        messagesController.add(
           "NOT ADJUSTED FOR TOO LONG -> ENTERED SLEEP MODE",
         );
         await sendCommand("E");
         print("SENT TO BAND END TRIP, TO ENTER SLEEP MODE");
-        telemetryController.add("SENT TO BAND END TRIP, TO ENTER SLEEP MODE");
+        messagesController.add("SENT TO BAND END TRIP, TO ENTER SLEEP MODE");
         return;
       }
       // STARTS READING
@@ -206,15 +209,32 @@ class BandBleService {
 
         try {
           final Map<String, dynamic> data = jsonDecode(jsonStr);
-          telemetryController.add(data.toString());
+          // UPDATE NOTIFIERS ↓
+          bpmNotifier.value = (data['bpm'] ?? 0).toDouble();
+          battNotifier.value = (data['BATT'] ?? 0).toDouble();
+
+          final bpm = data['bpm'];
+          final spo2 = data['spO2'];
+          final temp = data['temp'];
+
+          if (bpm is! num || spo2 is! num || temp is! num) {
+            print("Invalid packet: $data");
+            return;
+          }
+          // telemetryController.add(data.toString());
+          telemetryController.add(
+            VitalReadings(
+              heartRate: bpm.toDouble(),
+              spo2: spo2.toDouble(),
+              temp: temp.toDouble(),
+              timestamp: DateTime.now(),
+            ),
+          );
+
           print("BATT: ${data['BATT']}");
           print("SPO2: ${data['spO2']}");
           print("BPM: ${data['bpm']}");
           print("TEMP: ${data['temp']}");
-
-          // UPDATE NOTIFIERS ↓
-          bpmNotifier.value = (data['bpm'] ?? 0).toDouble();
-          battNotifier.value = (data['BATT'] ?? 0).toDouble();
         } catch (e) {
           print("Invalid JSON: $jsonStr");
         }
@@ -248,7 +268,7 @@ class BandBleService {
     // ADD 1 ATTEMPT TO RECONNECT
     if (_reconnectAttempts >= maxReconnectAttempts) {
       print("Reconnect timeout");
-      telemetryController.add(
+      messagesController.add(
         "Connection lost. Unable to reconnect. Please check the band and try again.",
       );
       return;
