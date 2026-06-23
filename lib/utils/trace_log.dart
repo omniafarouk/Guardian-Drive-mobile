@@ -27,29 +27,29 @@ void traceLog(String step, [dynamic data]) {
   logger.i('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
 }
 
-// type could be 'i' , 'f' , 'd' , 'e'
-void tracelog(String? type, String step, [dynamic data]) {
-  final timestamp = DateTime.now().toIso8601String().substring(
-    11,
-    19,
-  ); // HH:MM:SS
-  switch (type) {
-    case 'i': // info
-      logger.i('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
-      break;
-    case 'd': // debug
-      logger.d('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
-      break;
-    case 'e': // error
-      logger.e('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
-      break;
-    case 'f': // fatal
-      logger.f('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
-      break;
-    default:
-      logger.d('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
-  }
-}
+// // type could be 'i' , 'f' , 'd' , 'e'
+// void tracelog(String? type, String step, [dynamic data]) {
+//   final timestamp = DateTime.now().toIso8601String().substring(
+//     11,
+//     19,
+//   ); // HH:MM:SS
+//   switch (type) {
+//     case 'i': // info
+//       logger.i('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
+//       break;
+//     case 'd': // debug
+//       logger.d('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
+//       break;
+//     case 'e': // error
+//       logger.e('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
+//       break;
+//     case 'f': // fatal
+//       logger.f('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
+//       break;
+//     default:
+//       logger.d('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
+//   }
+// }
 
 /*
 to print , use something like:

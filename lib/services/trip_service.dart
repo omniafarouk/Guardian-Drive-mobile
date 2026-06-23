@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';
+import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_models.dart';
+import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_service.dart';
 import 'package:guardian_drive_mobile/services/medical_info_service.dart';
 import 'package:guardian_drive_mobile/services/mock_vitals_stream.dart';
 import 'package:guardian_drive_mobile/services/user_service.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/hive_store.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/vitals_aggregator_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
+import 'package:guardian_drive_mobile/widgets/alerts_actions_popups.dart';
 
 import '../models/trip.dart';
 import '../models/trips_response.dart';
@@ -45,19 +48,24 @@ class TripService {
 
   // ---------------- Trip Services ----------------
 
-  Future<void> startTrip({
-    int? tripId,
-    DriverHealthThresholds? staticThresholds,
-    bool testMode = false,
-  }) async {
+  Future<void> startTrip({int? tripId, bool testMode = false}) async {
     traceLog('TripService: trip started', tripId);
 
     DriverHealthThresholds thresholds = await MedicalInfoService()
         .getDriverThresholds();
 
-    thresholds =
-        staticThresholds ??
-        thresholds; // SHOULD NOT BE THERE , ONLY FOR TESTING
+    // FOR NOW : SHOULD BE REMOVED
+    thresholds = DriverHealthThresholds(
+      avgHeartRate: 75,
+      minHeartRate: 60,
+      maxHeartRate: 100,
+      avgSpo2: 98,
+      minSpo2: 95,
+      maxSpo2: 100,
+      avgTemp: 36.5,
+      minTemp: 36.0,
+      maxTemp: 37.5,
+    );
 
     // TODO: Start (predrive health check)
 
@@ -69,10 +77,9 @@ class TripService {
     // 2. Start health monitoring
     _healthMonitor = HealthMonitorService(
       thresholds: thresholds,
-      // onAlertTriggered: (breach) {
-      //   // TODO: POST alert to backend — same pattern as SOS flow
-      //   traceLog('Alert triggered', breach.toString());
-      // },
+      onAlertTriggered: (conditionName) {
+        showHealthAlertDialog(conditionName);
+      },
       testMode: testMode,
     );
     _healthMonitor!.start(vitalsStream);
@@ -113,8 +120,31 @@ class TripService {
     }
   }
 
-  void dispose() {
-    _vitalsController.close();
+  // DESIGN: Timeout checking after 5 mins
+  Future<bool> startPreDriveCheck({
+    required DriverHealthThresholds thresholds,
+    Duration timeout = const Duration(minutes: 5),
+    bool testMode = false,
+  }) async {
+    final PreDriveCheckService preDriveService = PreDriveCheckService(
+      thresholds: thresholds,
+      timeout: timeout,
+      testMode: testMode,
+    );
+    final result = await preDriveService.run(vitalsStream);
+    if (result.canDrive) {
+      traceLog('Driver passed preCheck Successfully, He may proceed');
+      return true;
+    } else {
+      traceLog(
+        'Driver didn\'t pass preCheck , Driver Blocked By: ',
+        '${result.blockedBy}',
+      );
+      return false;
+    }
+    // Step 3 goes here — start the vitals stream
+    // Step 4 goes here — create a fresh HealthMonitorService
+    // Step 5 goes here — race timeout vs alert vs disconnect
   }
 
   // ------- Api services ------------------

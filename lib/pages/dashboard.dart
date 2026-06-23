@@ -613,21 +613,8 @@ class _DashboardState extends State<Dashboard> {
                       ),
                 ElevatedButton(
                   onPressed: () async {
-                    final thresholds = DriverHealthThresholds(
-                      avgHeartRate: 75,
-                      minHeartRate: 60,
-                      maxHeartRate: 100,
-                      avgSpo2: 98,
-                      minSpo2: 95,
-                      maxSpo2: 100,
-                      avgTemp: 36.5,
-                      minTemp: 36.0,
-                      maxTemp: 37.5,
-                    );
-
                     await TripService().startTrip(
                       tripId: tripId,
-                      staticThresholds: thresholds,
                       testMode: true,
                     );
 

@@ -53,7 +53,7 @@ class AlertApiService {
         throw Exception(res.body);
       }
     } catch (e) {
-      print('getAlertById error: $e'); // add this
+      print('getAlertById error: $e');
       return null;
     }
   }

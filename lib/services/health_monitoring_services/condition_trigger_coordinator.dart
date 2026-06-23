@@ -27,9 +27,10 @@ enum AlertTier { warning, alertTrigger }
 /// What the coordinator decided to do (if anything) this cycle.
 class TriggerEvaluation {
   final AlertTier? tier; // null = nothing happened this cycle
+  final String? conditionName;
   final List<ConditionBreach> breaches;
 
-  TriggerEvaluation({this.tier, required this.breaches});
+  TriggerEvaluation({this.tier, this.conditionName, required this.breaches});
 
   factory TriggerEvaluation.none() =>
       TriggerEvaluation(tier: null, breaches: []);
@@ -113,10 +114,10 @@ class BreachTriggerCoordinator {
     );
 
     // ---- STAGE 2: classify warning vs alertTrigger ----
-    final tier = _classifyTier(confirmedBreaches, latestReading);
-    if (tier == null) return TriggerEvaluation.none();
+    final pattern = _classifyPattern(confirmedBreaches, latestReading);
+    if (pattern?.tier == null) return TriggerEvaluation.none();
 
-    traceLog('Tier classified', tier.name);
+    traceLog('Tier classified', pattern?.conditionName);
 
     // ---- STAGE 3: act, retire keys, AND start the cooldown ----
     final triggeredBreaches = List<ConditionBreach>.from(confirmedBreaches);
@@ -130,7 +131,11 @@ class BreachTriggerCoordinator {
     ); // cooldown begins NOW, because an action just fired
     traceLog('Condition retired, cooldown until', _cooldownUntil.toString());
 
-    return TriggerEvaluation(tier: tier, breaches: triggeredBreaches);
+    return TriggerEvaluation(
+      tier: pattern?.tier,
+      conditionName: pattern?.conditionName,
+      breaches: triggeredBreaches,
+    );
   }
 
   bool _isTempOscillating() {
@@ -156,7 +161,7 @@ class BreachTriggerCoordinator {
     _cooldownUntil = null;
   }
 
-  AlertTier? _classifyTier(
+  PatternMatch? _classifyPattern(
     List<ConditionBreach> confirmedBreaches,
     VitalReadings latestReading, // pass the original reading in
   ) {
@@ -216,12 +221,14 @@ class BreachTriggerCoordinator {
       return null;
     }
 
+    final PatternMatch patternDetected = matches.first; // strongest match wins
+
     traceLog(
       'Pattern matched',
-      '${matches.first.conditionName} (${matches.first.tier.name})',
+      '${patternDetected.conditionName} (${patternDetected.tier.name})',
     );
 
-    return matches.first.tier; // strongest match wins
+    return patternDetected;
   }
 }
 

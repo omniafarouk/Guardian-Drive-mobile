@@ -1,6 +1,7 @@
 // services/health_monitor.dart
 import 'dart:async';
-import 'package:guardian_drive_mobile/models/condition_breach_data.dart';
+import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/main.dart';
 import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_trigger_coordinator.dart';
@@ -16,9 +17,7 @@ class HealthMonitorService {
   // final DriverBaselineWithNoise _baseline;
   final ThresholdChecker _checker;
   final BreachTriggerCoordinator _coordinator;
-  // final void Function(ConditionBreach breach)
-  // onAlertTriggered; // caller handles backend POST
-
+  final void Function(String conditionName) onAlertTriggered;
   StreamSubscription<VitalReadings>? _subscription;
 
   // Broadcast stream — multiple pages can listen to this
@@ -31,7 +30,7 @@ class HealthMonitorService {
   HealthMonitorService({
     required DriverHealthThresholds thresholds,
     //required HardwareController hardwareController,
-    //required this.onAlertTriggered,
+    required this.onAlertTriggered,
     bool testMode = false,
   }) : _checker = ThresholdChecker(thresholds),
        //_hardwareController = hardwareController;
@@ -58,7 +57,7 @@ class HealthMonitorService {
 
     traceLog(
       'HealthMonitor firing',
-      'tier=${triggerEvaluation.tier!.name}, breaches=${triggerEvaluation.breaches.length}',
+      'tier=${triggerEvaluation.tier!.name}, condition=${triggerEvaluation.conditionName}',
     );
     // just for logging , no functionality here
     for (final breach in triggerEvaluation.breaches) {
@@ -72,17 +71,19 @@ class HealthMonitorService {
 
     if (triggerEvaluation.tier == AlertTier.warning) {
       traceLog('Send Warning Notification To Driver :', reading.toString());
-      // onWarningTriggered(
-      //   triggerEvaluation,
-      // ); // one call, full evaluation triggerEvaluation
+      String? conditionName = triggerEvaluation.conditionName;
+      conditionName ??= "Unknown Condition?!!";
+      ScaffoldMessenger.of(
+        navigatorKey.currentContext!,
+      ).showSnackBar(SnackBar(content: Text('Health alert: $conditionName')));
     } else if (triggerEvaluation.tier == AlertTier.alertTrigger) {
       traceLog(
         'Check Driver For response if not Trigger Alert : ',
         reading.toString(),
       );
-      // onAlertTriggered(
-      //   triggerEvaluation,
-      // ); // one call, full evaluation triggerEvaluation
+      String? conditionName = triggerEvaluation.conditionName;
+      conditionName ??= "Unknown Condition?!!";
+      onAlertTriggered(conditionName);
     }
   }
 
