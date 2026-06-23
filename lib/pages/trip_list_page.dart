@@ -84,7 +84,7 @@ class _tripListPageState extends State<tripListPage> {
             final sort = result["sort"] as String;
 
             //selectedStatus = statuses.isNotEmpty ? statuses.first.name : null;
-            selectedStatus=status?.name;
+            selectedStatus = status?.name;
             selectedFromDate = range?.start;
             selectedToDate = range?.end;
             selectedOrderBy = sort;

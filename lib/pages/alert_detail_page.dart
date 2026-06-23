@@ -69,6 +69,7 @@ class _AlertDetailState extends State<AlertDetail> {
   getResponseTime(AlertDetails alert) {
     return alert.solvedAt!.difference(alert.alertSummary.generatedAt);
   }
+
   @override
   Widget build(BuildContext context) {
     final int alertId = ModalRoute.of(context)!.settings.arguments as int;

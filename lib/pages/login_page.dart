@@ -21,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final _authService = AuthService();
 
   bool isPressed = false;
+  bool _obscurePassword = true;
 
   Future<void> _handleLogin() async {
     // Validates all form fields at once
@@ -166,7 +167,7 @@ class _LoginPageState extends State<LoginPage> {
 
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(
                         filled: true,
@@ -174,6 +175,19 @@ class _LoginPageState extends State<LoginPage> {
                         hintText: "Enter password",
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                         ),
                       ),
 

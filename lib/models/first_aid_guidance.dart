@@ -49,7 +49,7 @@ class Condition {
   }
 }
 
-enum ConditionSeverity { MILD, MODERATE, CRITICAL, NORMAL }
+enum ConditionSeverity { MODERATE, CRITICAL, NORMAL }
 
 enum ConditionType {
   LOW_HEART_RATE,

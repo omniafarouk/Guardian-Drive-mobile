@@ -4,7 +4,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:guardian_drive_mobile/models/band.dart';
+import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
+import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
@@ -30,7 +33,7 @@ class _DashboardState extends State<Dashboard> {
   double? lat;
   double? lng;
   List<LatLng> route = [];
-  int bpm = 72;
+  int bpm = 72; // default test value TODO: Best to be changes to driver avg
   int battery = 0;
   bool isConnected = false;
   String username = "";
@@ -47,12 +50,31 @@ class _DashboardState extends State<Dashboard> {
   List<Trip> plannedTrips = [];
   bool isPlannedLoading = true;
 
+  VitalReadings? _latestReading;
+  StreamSubscription<VitalReadings>? _sub;
+  final Duration ReloadBpmRange = Duration(seconds: 10);
+
+  // ------💡 TESTINGGGGG -----
+  final tripId = 17;
+
   @override
   void initState() {
     super.initState();
     initDashboard();
     startLiveBPM();
     // startTracking();
+    // Subscribe to the same broadcast stream
+    _sub = TripService().vitalsStream.listen((reading) {
+      // setState(() => _latestReading = reading);
+      _latestReading = reading; // no setState — just store it quietly
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel(); // always cancel on dispose
+    timer?.cancel();
+    super.dispose();
   }
 
   Future<void> loadRoute() async {
@@ -193,12 +215,12 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void startLiveBPM() {
-    timer = Timer.periodic(Duration(seconds: 10), (timer) {
+    timer = Timer.periodic(ReloadBpmRange, (_) {
+      // refresh the live bpm every 10 seconds not on real readings , is this correct tho??
       if (!mounted) return;
-
       setState(() {
-        bpm = 65 + random.nextInt(20);
-      });
+        bpm = _latestReading?.heartRate.toInt() ?? bpm;
+      }); // just rebuild — _latestReading already has the latest
     });
   }
 
@@ -231,12 +253,6 @@ class _DashboardState extends State<Dashboard> {
     } else {
       return Colors.redAccent;
     }
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
   }
 
   @override
@@ -595,6 +611,37 @@ class _DashboardState extends State<Dashboard> {
                           );
                         }).toList(),
                       ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final thresholds = DriverHealthThresholds(
+                      avgHeartRate: 75,
+                      minHeartRate: 60,
+                      maxHeartRate: 100,
+                      avgSpo2: 98,
+                      minSpo2: 95,
+                      maxSpo2: 100,
+                      avgTemp: 36.5,
+                      minTemp: 36.0,
+                      maxTemp: 37.5,
+                    );
+
+                    await TripService().startTrip(
+                      tripId: tripId,
+                      staticThresholds: thresholds,
+                      testMode: true,
+                    );
+
+                    print('Trip started — watch console for breach traces');
+                  },
+                  child: Text('TEST: Start Mock Trip'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await TripService().endTrip(tripId);
+                    print('Trip ended');
+                  },
+                  child: Text('TEST: End Trip'),
+                ),
               ],
             ),
           ),

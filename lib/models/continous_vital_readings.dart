@@ -1,8 +1,8 @@
 class VitalReadings {
-  final double heartRate;
-  final double spo2;
-  final double temp;
-  final DateTime timestamp;
+  double heartRate;
+  double spo2;
+  double temp;
+  DateTime timestamp;
 
   VitalReadings({
     required this.heartRate,
@@ -25,4 +25,7 @@ class VitalReadings {
     temp: map['temp'],
     timestamp: DateTime.parse(map['timestamp']),
   );
+
+  @override
+  String toString() => 'heartRate: $heartRate , Spo2: $spo2 , Temp: $temp';
 }

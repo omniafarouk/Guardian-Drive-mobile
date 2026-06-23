@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:guardian_drive_mobile/services/api_client_service.dart'
     as api_service;
 import 'package:guardian_drive_mobile/services/storage_service.dart';
+import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:http/http.dart' as http;
 import 'package:guardian_drive_mobile/models/user.dart';
 import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
@@ -23,8 +24,8 @@ class UserService {
         headers: await api_service.ApiClient.headers(),
       );
 
-      print("STATUS CODE: ${response.statusCode}");
-      print("BODY: ${response.body}");
+      // print("STATUS CODE: ${response.statusCode}");
+      // print("BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -56,7 +57,7 @@ class UserService {
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print("Avg Reading Creation Successfull , $data");
+        traceLog("Avg Reading Creation Successful , $data");
         // must return valid data , if changed to success code = 203 (no content)- send true for successful request
         return data;
       } else {
