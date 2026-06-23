@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 import 'storage_service.dart';
@@ -23,6 +25,18 @@ class ApiClient {
     );
   }
 
+  // Use this for all PUT requests
+  static Future<http.Response> patch(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    return await http.patch(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: await headers(),
+      body: jsonEncode(body),
+    );
+  }
+
   /*
   // Use this for all POST requests
   static Future<http.Response> post(
@@ -36,17 +50,6 @@ class ApiClient {
     );
   }
 
-  // Use this for all PUT requests
-  static Future<http.Response> patch(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) async {
-    return await http.patch(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: await _headers(),
-      body: jsonEncode(body),
-    );
-  }
 
   // Use this for all DELETE requests
   static Future<http.Response> delete(String endpoint) async {

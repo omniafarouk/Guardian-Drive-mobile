@@ -1,5 +1,5 @@
 // services/condition_pattern_matcher.dart
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_patterns_data.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_trigger_coordinator.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/driver_baseline_with_noise_model.dart';

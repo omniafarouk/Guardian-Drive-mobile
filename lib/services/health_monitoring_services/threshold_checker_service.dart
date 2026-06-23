@@ -1,6 +1,6 @@
 // services/threshold_checker.dart
 import 'package:guardian_drive_mobile/models/condition_breach_data.dart';
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
 

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/hive_store.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 

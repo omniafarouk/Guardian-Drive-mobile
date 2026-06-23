@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
 import 'dart:math';
+
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 
 // Stream<VitalReadings> mockVitalsStream() {
 //   final random = Random();

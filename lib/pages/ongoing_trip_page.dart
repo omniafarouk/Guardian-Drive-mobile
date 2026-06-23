@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:guardian_drive_mobile/models/alert_request.dart';
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/alert_api_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +35,7 @@ class _OnGoingTripState extends State<OngoingTripPage> {
     super.initState();
     // Subscribe to the same broadcast stream
     _sub = TripService().vitalsStream.listen((reading) {
-      setState(() => _latestReading = reading);
+      setState(() => _latestReading = reading as VitalReadings);
     });
   }
 

@@ -1,4 +1,4 @@
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class HiveStore {

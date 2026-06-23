@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_models.dart';

@@ -1,11 +1,11 @@
 import 'dart:convert';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/api_client_service.dart'
     as api_service;
 import 'package:guardian_drive_mobile/services/storage_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:http/http.dart' as http;
 import 'package:guardian_drive_mobile/models/user.dart';
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/device_auth_service.dart';
 
 class UserService {

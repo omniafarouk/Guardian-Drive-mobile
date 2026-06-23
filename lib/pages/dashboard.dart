@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:guardian_drive_mobile/models/band.dart';
 import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
@@ -35,7 +36,7 @@ class _DashboardState extends State<Dashboard> {
   double? lat;
   double? lng;
   List<LatLng> route = [];
-  // int bpm = 72;
+  double bpm = 0.0;
   // int battery = 0;
   // bool isConnected = false;
   String username = "";
@@ -53,7 +54,7 @@ class _DashboardState extends State<Dashboard> {
   bool isPlannedLoading = true;
 
   VitalReadings? _latestReading;
-  StreamSubscription<VitalReadings>? _sub;
+  late StreamSubscription<VitalReadings> _sub;
   final Duration ReloadBpmRange = Duration(seconds: 10);
 
   // ------💡 TESTINGGGGG -----
@@ -64,7 +65,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
-    bandBleSub = BandBleService.instance.telemetryController.stream.listen((
+    bandBleSub = BandBleService.instance.messagesController.stream.listen((
       data,
     ) {
       print("BAND BLE DATA FROM DASHBOARD: $data");
@@ -80,10 +81,13 @@ class _DashboardState extends State<Dashboard> {
     startLiveBPM();
     // startTracking();
     // Subscribe to the same broadcast stream
-    _sub = TripService().vitalsStream.listen((reading) {
-      // setState(() => _latestReading = reading);
+    _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
       _latestReading = reading; // no setState — just store it quietly
     });
+    // _sub = TripService().vitalsStream.listen((reading) {
+    //   // setState(() => _latestReading = reading);
+    //   _latestReading = reading; // no setState — just store it quietly
+    // });
   }
 
   @override
@@ -237,7 +241,7 @@ class _DashboardState extends State<Dashboard> {
       // refresh the live bpm every 10 seconds not on real readings , is this correct tho??
       if (!mounted) return;
       setState(() {
-        bpm = _latestReading?.heartRate.toInt() ?? bpm;
+        bpm = _latestReading?.heartRate ?? bpm;
       }); // just rebuild — _latestReading already has the latest
     });
   }

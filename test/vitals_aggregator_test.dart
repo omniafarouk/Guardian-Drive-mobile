@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:guardian_drive_mobile/models/continous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/mock_vitals_stream.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/vitals_aggregator_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
