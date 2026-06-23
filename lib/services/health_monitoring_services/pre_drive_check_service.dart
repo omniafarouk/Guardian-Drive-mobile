@@ -15,11 +15,8 @@ class PreDriveCheckService {
 
   bool _cancelled = false;
 
-  PreDriveCheckService({
-    required this.thresholds,
-    this.timeout = const Duration(minutes: 2),
-    this.testMode = false,
-  });
+  PreDriveCheckService({required this.thresholds, this.testMode = false})
+    : timeout = testMode ? Duration(seconds: 20) : Duration(minutes: 2);
 
   /// Runs the pre-drive health scan.
   ///

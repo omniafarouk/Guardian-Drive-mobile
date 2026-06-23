@@ -18,6 +18,7 @@ class HealthMonitorService {
   final ThresholdChecker _checker;
   final BreachTriggerCoordinator _coordinator;
   final void Function(String conditionName) onAlertTriggered;
+  final void Function(String conditionName) onWarning;
   StreamSubscription<VitalReadings>? _subscription;
 
   // Broadcast stream — multiple pages can listen to this
@@ -31,6 +32,7 @@ class HealthMonitorService {
     required DriverHealthThresholds thresholds,
     //required HardwareController hardwareController,
     required this.onAlertTriggered,
+    required this.onWarning,
     bool testMode = false,
   }) : _checker = ThresholdChecker(thresholds),
        //_hardwareController = hardwareController;
@@ -73,12 +75,7 @@ class HealthMonitorService {
       traceLog('Send Warning Notification To Driver :', reading.toString());
       String? conditionName = triggerEvaluation.conditionName;
       conditionName ??= "Unknown Condition?!!";
-      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        SnackBar(
-          content: Text('Health alert: $conditionName'),
-          duration: Duration(seconds: 20),
-        ),
-      );
+      onWarning(conditionName);
     } else if (triggerEvaluation.tier == AlertTier.alertTrigger) {
       traceLog(
         'Check Driver For response if not Trigger Alert : ',

@@ -10,9 +10,11 @@ import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
+import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
+import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -54,18 +56,17 @@ class _DashboardState extends State<Dashboard> {
 
   VitalReadings? _latestReading;
   late StreamSubscription<VitalReadings> _sub;
-  final Duration ReloadBpmRange = Duration(seconds: 10);
+  final Duration reloadBpmRange = Duration(seconds: 10);
 
   // ------💡 TESTINGGGGG -----
   final tripId = 17;
-  late bool floatingActionButton;
 
   StreamSubscription? bandBleSub;
   StreamSubscription? carBleSub;
   @override
   void initState() {
     super.initState();
-    floatingActionButton = TripService().isTripActive;
+
     bandBleSub = BandBleService.instance.messagesController.stream.listen((
       data,
     ) {
@@ -93,7 +94,7 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   void dispose() {
-    _sub?.cancel(); // always cancel on dispose
+    _sub.cancel(); // always cancel on dispose
     timer?.cancel();
     carBleSub?.cancel();
     bandBleSub?.cancel();
@@ -238,7 +239,7 @@ class _DashboardState extends State<Dashboard> {
   // }
 
   void startLiveBPM() {
-    timer = Timer.periodic(ReloadBpmRange, (_) {
+    timer = Timer.periodic(reloadBpmRange, (_) {
       // refresh the live bpm every 10 seconds not on real readings , is this correct tho??
       if (!mounted) return;
       setState(() {
@@ -299,6 +300,28 @@ class _DashboardState extends State<Dashboard> {
     return Scaffold(
       appBar: CustomAppBar(title: "Overview"),
       drawer: const SideBarDrawer(),
+
+      floatingActionButton: ValueListenableBuilder<bool>(
+        valueListenable: TripService.instance.tripIsActiveNotifier,
+        builder: (context, tripIsActive, child) {
+          return tripIsActive
+              ? FloatingActionButton(
+                  backgroundColor: Colors.red,
+                  onPressed: () {
+                    traceLog('SOS TRIGGERED');
+                    showConfirmSOSDialog(context);
+                  },
+                  child: const Text(
+                    'SOS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(); // renders nothing when no trip
+        },
+      ),
 
       body: Container(
         height: double.infinity,

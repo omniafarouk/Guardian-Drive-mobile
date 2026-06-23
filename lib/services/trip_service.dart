@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_models.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_service.dart';
@@ -12,6 +14,7 @@ import 'package:guardian_drive_mobile/services/vitals_aggregation/hive_store.dar
 import 'package:guardian_drive_mobile/services/vitals_aggregation/vitals_aggregator_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/health_alert_popup.dart';
+import 'package:guardian_drive_mobile/widgets/health_warning_popup.dart';
 
 import '../models/trip.dart';
 import '../models/trips_response.dart';
@@ -20,7 +23,7 @@ import 'api_client_service.dart' as api_service;
 
 class TripService {
   static const baseUrl = api_service.ApiClient.baseUrl;
-  int? _activeTripId;
+  int? activeTripId;
   bool isTripActive = false;
 
   // Singleton -- for one single instance shared across the entire app
@@ -48,15 +51,21 @@ class TripService {
 
   HealthMonitorService? _healthMonitor;
 
+  // Notifier for the SOS Button Appereance
+  final ValueNotifier<bool> tripIsActiveNotifier = ValueNotifier(false);
+
   // ---------------- Trip Services ----------------
+
   void activateTrip(int tripId) {
-    _activeTripId = tripId;
+    activeTripId = tripId;
     isTripActive = true;
+    tripIsActiveNotifier.value = true;
   }
 
   void clearActiveTrip() {
-    _activeTripId = null;
+    activeTripId = null;
     isTripActive = false;
+    tripIsActiveNotifier.value = false;
   }
 
   Future<void> startTrip({required int tripId, bool testMode = false}) async {
@@ -68,10 +77,10 @@ class TripService {
 
     // FOR NOW : SHOULD BE REMOVED
     thresholds = DriverHealthThresholds(
-      avgHeartRate: 75,
+      avgHeartRate: 80,
       minHeartRate: 60,
       maxHeartRate: 100,
-      avgSpo2: 98,
+      avgSpo2: 96,
       minSpo2: 95,
       maxSpo2: 100,
       avgTemp: 36.5,
@@ -80,6 +89,11 @@ class TripService {
     );
 
     // TODO: Start (predrive health check)
+    // bool checkPassed = await startPreDriveCheck(thresholds: thresholds);
+    // if (!checkPassed) {
+    //   traceLog(' COULDN\'T START TRIP!!! ');
+    //   return;
+    // }
 
     // 1. Start aggregation
     await HiveStore.init();
@@ -91,6 +105,9 @@ class TripService {
       thresholds: thresholds,
       onAlertTriggered: (conditionName) {
         showHealthAlertDialog(conditionName);
+      },
+      onWarning: (conditionName) {
+        showHealthWarningDialog(conditionName);
       },
       testMode: testMode,
     );
@@ -105,12 +122,12 @@ class TripService {
   }
 
   Future<void> endTrip() async {
-    if (_activeTripId == null) {
+    if (activeTripId == null) {
       clearActiveTrip();
       traceLog('endTrip called but no active trip');
       return;
     }
-    traceLog('TripService: trip ended', _activeTripId);
+    traceLog('TripService: trip ended', activeTripId);
     // Stop the stream    <<<<-------------- later would be stopping the BLE stream
     await _vitalsSubscription?.cancel();
     _vitalsSubscription = null;
@@ -125,7 +142,7 @@ class TripService {
 
     const readings = 1;
     // send to user Service
-    // final readings = await UserService.createHealthReadings(tripAvg, _activeTripId);
+    // final readings = await UserService.createHealthReadings(tripAvg, activeTripId);
     if (readings != null) {
       // or do it at finalize() ?
       clearActiveTrip();
@@ -141,12 +158,10 @@ class TripService {
   // DESIGN: Timeout checking after 5 mins
   Future<bool> startPreDriveCheck({
     required DriverHealthThresholds thresholds,
-    Duration timeout = const Duration(minutes: 5),
     bool testMode = false,
   }) async {
     final PreDriveCheckService preDriveService = PreDriveCheckService(
       thresholds: thresholds,
-      timeout: timeout,
       testMode: testMode,
     );
     final result = await preDriveService.run(vitalsStream);
