@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
+import 'package:guardian_drive_mobile/services/band_service.dart';
+import 'package:guardian_drive_mobile/services/storage_service.dart';
 
 class BandBleService {
   // SINGLETON
@@ -51,8 +53,38 @@ class BandBleService {
   // final ValueNotifier<double> tempNotifier = ValueNotifier(0.0);
   final ValueNotifier<double> battNotifier = ValueNotifier(0.0);
 
+  int? bandDeviceId;
+
+  double _lastSavedBatt = -1;
+  DateTime? _lastBattWrite;
+
+  // Only update batter once per meaningful battery change or once every 5 mins
+  void _maybeSaveBattery(double newBatt) {
+    final now = DateTime.now();
+    final timeSinceLast = _lastBattWrite == null
+        ? const Duration(hours: 99)
+        : now.difference(_lastBattWrite!);
+
+    final changed = (newBatt - _lastSavedBatt).abs() >= 2.0;
+    final timedOut = timeSinceLast >= const Duration(minutes: 5);
+
+    if (changed || timedOut) {
+      _lastSavedBatt = newBatt;
+      _lastBattWrite = now;
+      BandService.patchBand(
+        bandDeviceId!,
+        batteryLevel: newBatt.toInt(),
+      ); // ← only battery, isConnected untouched
+    }
+  }
+
   // starts scanning
   Future<void> scanAndConnect() async {
+    bandDeviceId ??= await StorageService.getDeviceId();
+    if (bandDeviceId == null) {
+      messagesController.add("NO_BAND_ASSIGNED");
+      return;
+    }
     print("scan and connect function called");
     _scanSubscription?.cancel();
 
@@ -65,10 +97,10 @@ class BandBleService {
           scanMode: ScanMode.lowLatency,
         )
         .listen((device) {
-          print("Found device");
+          print("Found device ${device.name} - ${device.id}");
 
           if (device.name == "ESP32_BAND") {
-            print("Found $device.name");
+            print("FOUNDD $device.name");
 
             _deviceId = device.id;
 
@@ -95,6 +127,7 @@ class BandBleService {
               isConnected = true;
               _readyForReadings = false;
               _reconnectAttempts = 0;
+              BandService.patchBand(bandDeviceId!, isConnected: true);
               print("# OF AT ATTEMPTS RESETEDDDD $_reconnectAttempts");
 
               try {
@@ -119,6 +152,7 @@ class BandBleService {
               print("CONNECTION STATE: DISCONNECTED");
 
               isConnected = false;
+              BandService.patchBand(bandDeviceId!, isConnected: false);
 
               _reconnect();
             }
@@ -218,7 +252,7 @@ class BandBleService {
           // UPDATE NOTIFIERS ↓
           bpmNotifier.value = (data['bpm'] ?? 0).toDouble();
           battNotifier.value = (data['BATT'] ?? 0).toDouble();
-
+          _maybeSaveBattery(battNotifier.value);
           final bpm = data['bpm'];
           final spo2 = data['spO2'];
           final temp = data['temp'];
@@ -280,7 +314,7 @@ class BandBleService {
       return;
     }
     _reconnectAttempts++;
-    print("# OF AT ATTEMPTS NOW $_reconnectAttempts");
+    print(" Band # OF AT ATTEMPTS NOW $_reconnectAttempts");
 
     Future.delayed(const Duration(seconds: 3), () {
       print("Trying reconnect...");

@@ -13,11 +13,11 @@ class CarBleService {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
 
   // UUIDs
-  static const serviceUuid = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
+  static const serviceUuid = '12345678-1234-1234-1234-1234567890AB';
 
-  static const txUuid = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E';
+  static const txUuid = '12345678-1234-1234-1234-1234567890AD';
 
-  static const rxUuid = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E';
+  static const rxUuid = '12345678-1234-1234-1234-1234567890AC';
 
   String? _deviceId; // save device id here (the band)
 
@@ -51,12 +51,13 @@ class CarBleService {
           scanMode: ScanMode.lowLatency,
         )
         .listen((device) {
-          if (device.name == "ESP32_CAR") {
-            print("ESP32_CAR Found car device");
+          print("found DEVICE ${device.name} - ${device.id}");
+          // if (device.name == "ESP32_CAR") {
+            print("FOUNDD $device.name");
             _deviceId = device.id;
             _scanSubscription?.cancel();
             _connect(device.id);
-          }
+          // }
         });
   }
 
@@ -141,12 +142,14 @@ class CarBleService {
             print("Car Hardware precheck passed, car can move now");
             commandController.add("CAR CONNECTION ESTABLISHED SUCCESSFULLY");
             _precheckPassed = true;
+            break;
           case "F":
             print("Car precheck failed");
             _precheckPassed = false;
             commandController.add(
               "CONNECTION FALIURE, PLEASE CONTACT YOUR FLEET MANAGER",
             );
+            break;
           case "C":
             // Car detected a crash via its own sensors
             print("[CAR] CRASH DETECTED");
