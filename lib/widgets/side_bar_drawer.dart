@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/services/medical_info_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
 
 class SideBarDrawer extends StatefulWidget {
@@ -187,6 +188,7 @@ class _SideBarDrawerState extends State<SideBarDrawer> {
     if (confirmed == true) {
       // Navigate to login screen and clear stack
       await StorageService.clearSession();
+      MedicalInfoService().clear(); // clear cached medical-info in app
       navigator.pushNamedAndRemoveUntil('/login', (route) => false);
     }
   }

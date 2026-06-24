@@ -9,7 +9,6 @@ import 'package:guardian_drive_mobile/widgets/filter_alert.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:number_paginator/number_paginator.dart';
 
-
 class AlertListPage extends StatefulWidget {
   const AlertListPage({super.key});
 
