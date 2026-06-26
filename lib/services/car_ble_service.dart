@@ -51,9 +51,9 @@ class CarBleService {
           scanMode: ScanMode.lowLatency,
         )
         .listen((device) {
+          print("found DEVICE ${device.name} - ${device.id}");
           // if (device.name == "ESP32_CAR") {
-          // print("ESP32_CAR Found car device");
-          print("found device");
+          print("FOUNDD $device.name");
           _deviceId = device.id;
           _scanSubscription?.cancel();
           _connect(device.id);
