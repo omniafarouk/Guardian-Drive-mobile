@@ -49,7 +49,7 @@ void showHealthAlertDialog(String conditionName, VitalReadings reading) {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
-                Text("Sending Health Abnormal Alert Alert..."),
+                Text("Sending Health Abnormal Alert..."),
               ],
             ),
           ),

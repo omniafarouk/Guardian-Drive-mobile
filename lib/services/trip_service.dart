@@ -152,7 +152,6 @@ class TripService {
       );
       if (success) {
         // or do it at finalize() ?
-        clearActiveTrip();
         _vitalsAggregator = null;
         traceLog(
           'created Health readings at database, Deleting hive store',
@@ -162,6 +161,8 @@ class TripService {
       }
     } catch (error) {
       throw Exception("End Trip Failed , Try Again");
+    } finally {
+      clearActiveTrip();
     }
   }
 

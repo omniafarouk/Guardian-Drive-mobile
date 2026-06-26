@@ -44,7 +44,7 @@ class ConditionPatternMatcher {
         if (ratio < minRatio) minRatio = ratio;
       }
 
-      if (minRatio >= 0.7) {
+      if (minRatio >= 1.0) {
         matches.add(
           PatternMatch(
             conditionName: pattern.name,
@@ -52,7 +52,7 @@ class ConditionPatternMatcher {
             minRatio: minRatio,
           ),
         );
-      } else if (minRatio >= 0.75) {
+      } else if (minRatio >= warningNotificationAlertRatio) {
         matches.add(
           PatternMatch(
             conditionName: pattern.name,
