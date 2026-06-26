@@ -1,24 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/alert.dart';
+import 'package:guardian_drive_mobile/models/alert_request.dart';
+import 'package:guardian_drive_mobile/models/alert_summary.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
+import 'package:guardian_drive_mobile/services/alert_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/location_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
+import 'package:guardian_drive_mobile/utils/trace_log.dart';
+import 'package:guardian_drive_mobile/widgets/first_aid_guidance_popup.dart';
 
-void showConfirmSOSDialog(BuildContext context) {
-  showDialog(
+Future<void> showConfirmSOSDialog(
+  BuildContext context,
+  VitalReadings? latestReading,
+) async {
+  await showDialog(
     context: context,
-    builder: (BuildContext context) => AlertDialog(
-      title: Center(child: const Text("Request Help ?")),
+    useRootNavigator: true,
+    builder: (BuildContext dialogContext) => AlertDialog(
+      title: const Center(child: Text("Request Help ?")),
       actions: <Widget>[
         TextButton(
           style: TextButton.styleFrom(
-            backgroundColor: Colors.green, // button background
+            backgroundColor: Colors.green,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () =>
+              Navigator.of(dialogContext, rootNavigator: true).pop(),
           child: Text(
             'NO',
             style: TextStyle(
@@ -30,28 +41,25 @@ void showConfirmSOSDialog(BuildContext context) {
         ),
         TextButton(
           style: TextButton.styleFrom(
-            backgroundColor: Colors.red, // button background
+            backgroundColor: Colors.red,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          child: Text(
-            'YES',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade200,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
           onPressed: () async {
-            Navigator.pop(context); // close confirm dialog
+            Navigator.of(
+              dialogContext,
+              rootNavigator: true,
+            ).pop(); // close confirm
 
-            // 1. Show loading dialog
+            // Show loading
+            bool loadingShowing = true;
             showDialog(
               context: context,
-              barrierDismissible: false, // user can't dismiss it
-              builder: (context) => const AlertDialog(
+              barrierDismissible: false,
+              useRootNavigator: true,
+              builder: (_) => const AlertDialog(
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -61,114 +69,109 @@ void showConfirmSOSDialog(BuildContext context) {
                   ],
                 ),
               ),
-            );
-            // 2. Wait for the API call
-            await triggerSOS(context);
-            // TODO : trigger SOS Alert + create a loading widget or something till alert is triggered
+            ).then((_) => loadingShowing = false);
+
+            void closeLoading() {
+              if (loadingShowing && context.mounted) {
+                Navigator.of(context, rootNavigator: true).pop();
+                loadingShowing = false;
+              }
+            }
+
+            try {
+              final success = await triggerSOS(context, latestReading);
+              traceLog("success", success);
+              closeLoading();
+
+              if (success == false || success == null) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Triggering SOS Failed'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              if (!context.mounted) return;
+              traceLog('Show First Aid Guidance before dialog');
+              await showFirstAidGuidanceDialog(latestReading, context);
+              traceLog('Show First Aid Guidance after dialog');
+            } catch (e) {
+              traceLog("error in sending SOS : ", e);
+              closeLoading();
+              if (context.mounted) {
+                showDialog(
+                  context: context,
+                  useRootNavigator: true,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text("Failed to send SOS"),
+                    content: Text(e.toString()),
+                    actions: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(ctx, rootNavigator: true).pop(),
+                        child: const Text("OK"),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            }
           },
-        ),
-      ],
-    ),
-  );
-}
-
-Future<void> triggerSOS(BuildContext context) async {
-  try {
-    if (TripService().activeTripId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('There is No Trip Active Now')));
-      return;
-    }
-    // if (_latestReading == null) {
-    //   // Show snackbar or dialog — too early, no reading yet
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Health data not yet available, please wait')),
-    //   );
-    //   return;
-    // }
-    // AlertRequest alertRequest = AlertRequest(
-    //   type: alertType.SOS,
-    //   tripId: TripService().activeTripId,
-    //   triggeredLocationId: triggeredLocationId,
-    //   heartRate: _latestReading!.heartRate,
-    //   spo2: _latestReading!.spo2,
-    //   temp: _latestReading!.temp,
-    // );
-
-    // final alert = await AlertApiService.triggerSOSAlert(alertRequest);
-
-    // 3. Close loading dialog
-    if (context.mounted) Navigator.pop(context);
-
-    // 4. Show first aid guidance with the returned data
-    // if (context.mounted) _showFirstAidGuidanceDialog(alert);
-  } catch (e) {
-    // Close loading dialog and show error
-    if (context.mounted) Navigator.pop(context);
-    if (context.mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Failed to send SOS"),
-          content: Text(e.toString()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-}
-
-// ---------- TODO : its actually guidance that is to send not alert ------------
-void _showFirstAidGuidanceDialog(Alert? alert, BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) => AlertDialog(
-      title: Center(child: Text('HELP IS ON THE WAY!')),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        // shrinks to content height, doesn't fill screen
-        children: [
-          Text(
-            //'Emergency services have been notified '
-            //'and are on their way to your location.'
-            'Please follow the following instructions for your safety',
-            style: TextStyle(fontSize: 16),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16),
-          Text(
-            // TODO : put first aid guidance instructions here
-            'ETA: 10 minutes',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          style: TextButton.styleFrom(
-            backgroundColor: Color.fromARGB(255, 1, 21, 51),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          onPressed: () => Navigator.pop(context),
           child: Text(
-            'OK',
+            'YES',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Colors.grey.shade200,
             ),
           ),
         ),
       ],
     ),
   );
+}
+
+Future<bool?> triggerSOS(
+  BuildContext context,
+  VitalReadings? latestReading,
+) async {
+  if (TripService().activeTripId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('There is No Trip Active Now'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return false;
+  }
+
+  if (latestReading == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('There is no active vital readings yet'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return false;
+  }
+
+  int triggeredLocationId = await LocationService().getCurrentLocationId();
+
+  AlertRequest alertRequest = AlertRequest(
+    type: alertType.SOS,
+    tripId: TripService().activeTripId!,
+    triggeredLocationId: triggeredLocationId,
+    heartRate: latestReading.heartRate,
+    spo2: latestReading.spo2,
+    temp: latestReading.temp,
+  );
+  traceLog(
+    'in trigger SOS, sending SOS Alert request ',
+    alertRequest.toString(),
+  );
+
+  final success = await AlertApiService.triggerSOSAlert(alertRequest);
+  return success;
 }

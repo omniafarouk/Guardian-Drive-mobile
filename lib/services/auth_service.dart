@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:guardian_drive_mobile/services/api_client_service.dart'
     as api_service;
+import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:http/http.dart' as http;
 import '../models/auth.dart';
 
@@ -23,10 +24,9 @@ class AuthService {
       return LoginResponse.fromJson(jsonDecode(response.body));
     } else {
       final error = jsonDecode(response.body);
-      print("auth service error:" + error);
       // send this to login page to show it
       throw Exception(
-        error['message'] ?? 'Login failed',
+        error['error'] ?? 'Login failed',
       ); // exception catched in login page to show the error to user
     }
   }

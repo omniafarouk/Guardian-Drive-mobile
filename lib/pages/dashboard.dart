@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:guardian_drive_mobile/models/band.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
@@ -59,7 +58,7 @@ class _DashboardState extends State<Dashboard> {
   final Duration reloadBpmRange = Duration(seconds: 10);
 
   // ------💡 TESTINGGGGG -----
-  final tripId = 17;
+  final tripId = 26;
 
   StreamSubscription? bandBleSub;
   StreamSubscription? carBleSub;
@@ -83,13 +82,14 @@ class _DashboardState extends State<Dashboard> {
     startLiveBPM();
     // startTracking();
     // Subscribe to the same broadcast stream
-    _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
-      _latestReading = reading; // no setState — just store it quietly
-    });
-    // _sub = TripService().vitalsStream.listen((reading) {
-    //   // setState(() => _latestReading = reading);
+    // _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
     //   _latestReading = reading; // no setState — just store it quietly
     // });
+
+    _sub = TripService().vitalsStream.listen((reading) {
+      // setState(() => _latestReading = reading);
+      _latestReading = reading; // no setState — just store it quietly
+    });
   }
 
   @override
@@ -156,6 +156,7 @@ class _DashboardState extends State<Dashboard> {
       }
 
       final location = await HomeService().getTripLocation(trip.tripId, token);
+      traceLog("location in dashboard", location);
 
       setState(() {
         ongoingTrip = trip;
@@ -307,9 +308,9 @@ class _DashboardState extends State<Dashboard> {
           return tripIsActive
               ? FloatingActionButton(
                   backgroundColor: Colors.red,
-                  onPressed: () {
+                  onPressed: () async {
                     traceLog('SOS TRIGGERED');
-                    showConfirmSOSDialog(context);
+                    await showConfirmSOSDialog(context, _latestReading);
                   },
                   child: const Text(
                     'SOS',
@@ -441,7 +442,7 @@ class _DashboardState extends State<Dashboard> {
                 ),
                 SizedBox(height: 30),
 
-                Row(
+                Column(
                   children: [
                     Text(
                       "Ongoing Trip",
@@ -706,12 +707,57 @@ class _DashboardState extends State<Dashboard> {
                       ),
                 ElevatedButton(
                   onPressed: () async {
-                    await TripService().startTrip(
-                      tripId: tripId,
-                      testMode: true,
-                    );
+                    try {
+                      traceLog("tripId", tripId);
+                      final updatedTrip = await TripService().patchTrip(
+                        tripId,
+                        TripStatus.ONGOING,
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Trip started successfully'),
+                        ),
+                      );
+                      traceLog("updated Trip", updatedTrip);
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(e.toString())));
+                    }
 
-                    print('Trip started — watch console for breach traces');
+                    try {
+                      DriverHealthThresholds thresholds =
+                          DriverHealthThresholds(
+                            avgHeartRate: 80,
+                            minHeartRate: 60,
+                            maxHeartRate: 100,
+                            avgSpo2: 96,
+                            minSpo2: 95,
+                            maxSpo2: 100,
+                            avgTemp: 36.5,
+                            minTemp: 36.0,
+                            maxTemp: 37.5,
+                          );
+
+                      // normally should before it call predrive check and update database trip status
+                      await TripService().startTripTracking(
+                        tripId: tripId,
+                        thresholds: thresholds,
+                        testMode: true,
+                      );
+                      print('Trip started — watch console for breach traces');
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Couldn\'t Start Trip:${e.toString().replaceAll('Exception: ', '')}',
+                          ),
+                        ),
+                      );
+                    }
                   },
                   child: Text('TEST: Start Mock Trip'),
                 ),

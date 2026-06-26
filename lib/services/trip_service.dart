@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_models.dart';
@@ -57,6 +58,9 @@ class TripService {
   // ---------------- Trip Services ----------------
 
   void activateTrip(int tripId) {
+    if (activeTripId != null) {
+      throw Exception("there is already an ongoing trip for this driver");
+    }
     activeTripId = tripId;
     isTripActive = true;
     tripIsActiveNotifier.value = true;
@@ -68,59 +72,57 @@ class TripService {
     tripIsActiveNotifier.value = false;
   }
 
-  Future<void> startTrip({required int tripId, bool testMode = false}) async {
-    traceLog('TripService: trip started', tripId);
-    activateTrip(tripId);
-
-    DriverHealthThresholds thresholds = await MedicalInfoService()
-        .getDriverThresholds();
-
-    // FOR NOW : SHOULD BE REMOVED
-    thresholds = DriverHealthThresholds(
-      avgHeartRate: 80,
-      minHeartRate: 60,
-      maxHeartRate: 100,
-      avgSpo2: 96,
-      minSpo2: 95,
-      maxSpo2: 100,
-      avgTemp: 36.5,
-      minTemp: 36.0,
-      maxTemp: 37.5,
-    );
-
-    // TODO: Start (predrive health check)
-    // bool checkPassed = await startPreDriveCheck(thresholds: thresholds);
-    // if (!checkPassed) {
-    //   traceLog(' COULDN\'T START TRIP!!! ');
-    //   return;
-    // }
-
-    // 1. Start aggregation
-    await HiveStore.init();
-    _vitalsAggregator = VitalsAggregator(testMode: testMode);
-    _vitalsAggregator!.start();
-
-    // 2. Start health monitoring
-    _healthMonitor = HealthMonitorService(
-      thresholds: thresholds,
-      onAlertTriggered: (conditionName) {
-        showHealthAlertDialog(conditionName);
-      },
-      onWarning: (conditionName) {
-        showHealthWarningDialog(conditionName);
-      },
-      testMode: testMode,
-    );
-    _healthMonitor!.start(vitalsStream);
-
-    // 3. Connect the vitals source → feeds BOTH aggregator and monitor
-    //    via the broadcast stream
+  void initiateVitalStream() {
+    if (_vitalsSubscription != null) return;
     _vitalsSubscription = mockVitalsStream().listen((reading) {
       _vitalsController.add(reading); // → broadcast to all subscribers
       _vitalsAggregator!.onReading(reading); // → aggregation pipeline
     });
+
+    // _vitalsSubscription = BandBleService.instance.telemetryController.stream
+    //     .listen((reading) {
+    //       _vitalsController.add(reading); // → broadcast to all subscribers
+    //       _vitalsAggregator!.onReading(reading); // → aggregation pipeline
+    //     });
   }
 
+  Future<void> startTripTracking({
+    required int tripId,
+    required DriverHealthThresholds thresholds,
+    bool testMode = false,
+  }) async {
+    try {
+      traceLog('TripService: trip started', tripId);
+      activateTrip(tripId);
+
+      // 1. Start aggregation
+      await HiveStore.init();
+      _vitalsAggregator = VitalsAggregator(testMode: testMode);
+      _vitalsAggregator!.start();
+
+      // 2. Start health monitoring
+      _healthMonitor = HealthMonitorService(
+        thresholds: thresholds,
+        onAlertTriggered: (conditionName, reading) {
+          showHealthAlertDialog(conditionName, reading);
+        },
+        onWarning: (conditionName, reading) {
+          showHealthWarningDialog(conditionName, reading);
+        },
+        testMode: testMode,
+      );
+      _healthMonitor!.start(vitalsStream);
+
+      // 3. Connect the vitals source → feeds BOTH aggregator and monitor
+      //    via the broadcast stream
+      initiateVitalStream();
+    } catch (e) {
+      throw Exception(e);
+    }
+  }
+
+  // called to stop the tracking and update avgReading in database
+  // DOESN'T Actually end trip in database
   Future<void> endTrip() async {
     if (activeTripId == null) {
       clearActiveTrip();
@@ -140,18 +142,26 @@ class TripService {
 
     if (tripAvg == null) return;
 
-    const readings = 1;
+    //const readings = 1;
     // send to user Service
-    // final readings = await UserService.createHealthReadings(tripAvg, activeTripId);
-    if (readings != null) {
-      // or do it at finalize() ?
-      clearActiveTrip();
-      _vitalsAggregator = null;
-      traceLog(
-        'created Health readings at database, Deleting hive store',
-        tripAvg.toString(),
+    // could be wrapped in try to catch api service exception
+    try {
+      final success = await UserService.createHealthReadings(
+        tripAvg,
+        activeTripId!,
       );
-      HiveStore.clearAll();
+      if (success) {
+        // or do it at finalize() ?
+        clearActiveTrip();
+        _vitalsAggregator = null;
+        traceLog(
+          'created Health readings at database, Deleting hive store',
+          tripAvg.toString(),
+        );
+        HiveStore.clearAll();
+      }
+    } catch (error) {
+      throw Exception("End Trip Failed , Try Again");
     }
   }
 
@@ -278,24 +288,22 @@ class TripService {
   Future<Trip> patchTrip(int tripId, TripStatus status) async {
     final body = jsonEncode({'status': status.name});
     final uri = Uri.parse('$baseUrl/api/trips/$tripId');
+    print('PATCH URL: $uri');
+    print('PATCH BODY: $body'); // what are we sending?
     final response = await http.patch(
       uri,
       headers: await api_service.ApiClient.headers(),
-
-      //     headers: {
-      //   // add auth token from secure storage
-      //   HttpHeaders.authorizationHeader:
-      //   'Bearer $token',
-      //   HttpHeaders.contentTypeHeader: 'application/json',
-      // },
       body: body,
     );
-    //print("STATUS CODE: ${response.statusCode}");
-    //print("BODY: ${response.body}");
+    traceLog("STATUS CODE: ${response.statusCode}");
+    traceLog("BODY: ${response.body}");
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return Trip.fromJson(data['trip']);
     } else {
+      final error = json.decode(response.body);
+      traceLog("failed to update trip", {error['error']});
+      traceLog("failed to update trip", {error});
       throw Exception('Failed to update trip');
     }
   }

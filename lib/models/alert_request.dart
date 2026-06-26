@@ -10,7 +10,7 @@ temp: z.number().min(30).max(45),
 spo2: z.number().min(50).max(100),
 */
 
-import 'package:guardian_drive_mobile/models/alert.dart';
+import 'package:guardian_drive_mobile/models/alert_summary.dart';
 
 class AlertRequest {
   alertType type;
@@ -42,5 +42,11 @@ class AlertRequest {
       if (stoppedLocationId != null)
         'stoppedLocationId': stoppedLocationId, // only included if not null
     };
+  }
+
+  @override
+  String toString() {
+    return 'type:$type ,tripId: $tripId ,'
+        'triggeredLocationId: $triggeredLocationId, heartRate: $heartRate, spo2:$spo2, temp:$temp';
   }
 }

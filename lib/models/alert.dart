@@ -1,3 +1,4 @@
+import 'package:guardian_drive_mobile/models/alert_summary.dart';
 import 'package:guardian_drive_mobile/models/car.dart';
 import 'package:guardian_drive_mobile/models/health_event.dart';
 import 'package:guardian_drive_mobile/models/location.dart';
@@ -68,5 +69,3 @@ class Alert {
 }
 
 enum alertStatus { ACTIVE, RESOLVED }
-
-enum alertType { HEALTH_ABNORMAL, SOS }

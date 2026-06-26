@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
+import 'package:flutter/services.dart';
 
 import 'package:guardian_drive_mobile/pages/alert_list_page.dart';
 import 'package:guardian_drive_mobile/pages/dashboard.dart';
@@ -16,8 +17,12 @@ import 'package:guardian_drive_mobile/services/auth_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    // Locks Application in portrait mode
+    DeviceOrientation.portraitUp,
+  ]);
   runApp(const MyApp());
 }
 
