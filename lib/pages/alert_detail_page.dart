@@ -8,7 +8,7 @@ import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 
 import '../models/incident.dart';
-import '../widgets/alert_card.dart';
+import '../widgets/custom_card.dart';
 import '../widgets/map.dart' as MapDrawer;
 
 class AlertDetail extends StatefulWidget {

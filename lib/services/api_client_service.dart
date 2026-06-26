@@ -6,7 +6,7 @@ import 'storage_service.dart';
 
 class ApiClient {
   // static const String baseUrl = 'http://localhost:3000';
-  static const String baseUrl = "http://192.168.0.100:3000";
+  static const String baseUrl = "http://192.168.1.10:3000";
 
   // Builds headers with token automatically
   static Future<Map<String, String>> headers() async {
@@ -38,7 +38,7 @@ class ApiClient {
     );
   }
 
-  /*
+  
   // Use this for all POST requests
   static Future<http.Response> post(
     String endpoint,
@@ -46,11 +46,12 @@ class ApiClient {
   ) async {
     return await http.post(
       Uri.parse('$baseUrl$endpoint'),
-      headers: await _headers(),
+      headers: await headers(),
       body: jsonEncode(body),
     );
   }
 
+/*
 
   // Use this for all DELETE requests
   static Future<http.Response> delete(String endpoint) async {

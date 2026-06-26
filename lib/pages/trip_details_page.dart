@@ -85,7 +85,19 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       });
     }
   }
-
+  void navigateToOngoingPage(){
+    if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        '/ongoing-trip',
+        arguments: {
+          "destLatitude": trip!.destLatitude,
+          "destLongitude": trip!.destLongitude,
+          "startLatitude": trip!.startLatitude,
+          "startLongitude": trip!.startLongitude,
+        },
+      );
+  }
   Future<void> _startTrip() async {
     if (trip == null) return;
     setState(() {
@@ -103,6 +115,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Trip started successfully')),
       );
+      navigateToOngoingPage();
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -282,30 +295,46 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   //   _VehicleCard(car: car!),
                   SizedBox(height: 15),
                   // start trip button
+                  trip!.status == TripStatus.ONGOING ?
+                  ElevatedButton(
+                          onPressed: () {
+                            navigateToOngoingPage();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF2935E0),
+                            minimumSize: const Size(150, 50),
+                          ),
+                          child: Text(
+                            "Go To Maps",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        )
+                  :
                   canStartTrip
                       ? ElevatedButton(
                           onPressed: () {
-                            if (!CarBleService.instance.isConnected ||
-                                !BandBleService.instance.isConnected) {
-                              _showNotConnectedDialog(
-                                "Please connect both the band and vehicle first",
-                              );
-                              return; // important — stop here
-                            }
-                            if (!BandBleService.instance.isConnected) {
-                              _showNotConnectedDialog(
-                                "Please connect the driver band first",
-                              );
-                              return;
-                            }
-                            if (!CarBleService.instance.isConnected) {
-                              _showNotConnectedDialog(
-                                "Please connect the vehicle first",
-                              );
-                              return;
-                            }
+                            // if (!CarBleService.instance.isConnected ||
+                            //     !BandBleService.instance.isConnected) {
+                            //   _showNotConnectedDialog(
+                            //     "Please connect both the band and vehicle first",
+                            //   );
+                            //   return; // important — stop here
+                            // }
+                            // if (!BandBleService.instance.isConnected) {
+                            //   _showNotConnectedDialog(
+                            //     "Please connect the driver band first",
+                            //   );
+                            //   return;
+                            // }
+                            // if (!CarBleService.instance.isConnected) {
+                            //   _showNotConnectedDialog(
+                            //     "Please connect the vehicle first",
+                            //   );
+                            //   return;
+                            // }
                             buttonActionLoading ? null : _startTrip();
                             print('start trip');
+                            TripService.instance.startTrip(tripId: trip!.tripId);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF2935E0),

@@ -74,7 +74,7 @@ void showConfirmSOSDialog(BuildContext context) {
 
 Future<void> triggerSOS(BuildContext context) async {
   try {
-    if (TripService().activeTripId == null) {
+    if (TripService.activeTripId == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('There is No Trip Active Now')));

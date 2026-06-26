@@ -15,6 +15,7 @@ import 'package:guardian_drive_mobile/services/vitals_aggregation/vitals_aggrega
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/health_alert_popup.dart';
 import 'package:guardian_drive_mobile/widgets/health_warning_popup.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../models/trip.dart';
 import '../models/trips_response.dart';
@@ -23,7 +24,7 @@ import 'api_client_service.dart' as api_service;
 
 class TripService {
   static const baseUrl = api_service.ApiClient.baseUrl;
-  int? activeTripId;
+  static int? activeTripId;
   bool isTripActive = false;
 
   // Singleton -- for one single instance shared across the entire app
@@ -297,6 +298,27 @@ class TripService {
       return Trip.fromJson(data['trip']);
     } else {
       throw Exception('Failed to update trip');
+    }
+  }
+
+  static Future<bool> sendTripLocation(int tripId, LatLng location) async {
+    final endpoint = "/api/trips/$tripId/gps";
+    final body = {
+      'latitude': location.latitude,
+      'longitude': location.longitude,
+    };
+    try {
+      final res = await api_service.ApiClient.post(endpoint, body);
+      if (res.statusCode == 201) {
+        print("Location sent successfully");
+        return true;
+      } else {
+        print("Failed to send location: ${res.statusCode} - ${res.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Error sending trip location: $e");
+      return false;
     }
   }
 }
