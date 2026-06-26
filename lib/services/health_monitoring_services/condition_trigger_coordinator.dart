@@ -193,7 +193,7 @@ class BreachTriggerCoordinator {
     );
 
     traceLog(
-      '[DEBUGGING!!] Raw reading vs confirmed breach values',
+      'Raw reading vs confirmed breach values',
       'Raw Readings Recently Received : ${latestReading.toString()},'
           '\n Confirmed Readings from Breaches ${confirmedBreachesReading.toString()}',
     );

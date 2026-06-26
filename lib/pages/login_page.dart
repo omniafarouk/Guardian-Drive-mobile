@@ -22,6 +22,8 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isPressed = false;
   bool _obscurePassword = true;
+  bool _isLoading = false; // add this
+  String? _errorMessage;
 
   Future<void> _handleLogin() async {
     // Validates all form fields at once
@@ -57,12 +59,12 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       print('LOGIN ERROR: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        // clean up the exception prefix for display
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -204,6 +206,45 @@ class _LoginPageState extends State<LoginPage> {
 
                     SizedBox(height: screenHeight * 0.04),
 
+                    // INLINE ERROR — only shows when there's an error
+                    if (_errorMessage != null)
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.red.shade400,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.red.shade300,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(
+                                  color: Colors.red.shade300,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    SizedBox(height: screenHeight * 0.04),
+
                     // 🔹 LOGIN BUTTON
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -220,18 +261,26 @@ class _LoginPageState extends State<LoginPage> {
                           vertical: 15,
                         ),
                       ),
-
                       onPressed: () {
                         setState(() {
                           isPressed = true;
+                          _isLoading = true;
                         });
                         _handleLogin();
                       },
-
-                      child: Text(
-                        "Login",
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: _isLoading
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              "Login",
+                              style: TextStyle(color: Colors.white),
+                            ),
                     ),
 
                     SizedBox(height: screenHeight * 0.02),

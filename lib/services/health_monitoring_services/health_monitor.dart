@@ -17,8 +17,9 @@ class HealthMonitorService {
   // final DriverBaselineWithNoise _baseline;
   final ThresholdChecker _checker;
   final BreachTriggerCoordinator _coordinator;
-  final void Function(String conditionName) onAlertTriggered;
-  final void Function(String conditionName) onWarning;
+  final void Function(String conditionName, VitalReadings reading)
+  onAlertTriggered;
+  final void Function(String conditionName, VitalReadings reading) onWarning;
   StreamSubscription<VitalReadings>? _subscription;
 
   // Broadcast stream — multiple pages can listen to this
@@ -75,7 +76,7 @@ class HealthMonitorService {
       traceLog('Send Warning Notification To Driver :', reading.toString());
       String? conditionName = triggerEvaluation.conditionName;
       conditionName ??= "Unknown Condition?!!";
-      onWarning(conditionName);
+      onWarning(conditionName, reading);
     } else if (triggerEvaluation.tier == AlertTier.alertTrigger) {
       traceLog(
         'Check Driver For response if not Trigger Alert : ',
@@ -83,7 +84,7 @@ class HealthMonitorService {
       );
       String? conditionName = triggerEvaluation.conditionName;
       conditionName ??= "Unknown Condition?!!";
-      onAlertTriggered(conditionName);
+      onAlertTriggered(conditionName, reading);
     }
   }
 

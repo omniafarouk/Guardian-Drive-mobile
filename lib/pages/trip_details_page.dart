@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/services/medical_info_service.dart';
+import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/future_table_row.dart';
 import 'package:intl/intl.dart';
@@ -104,6 +107,35 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       buttonActionLoading = true;
     });
     try {
+      traceLog("tripId", trip!.tripId);
+
+      // 1. fetch driver thresholds for trip predrivecheck and tracking
+      DriverHealthThresholds thresholds = await MedicalInfoService()
+          .getDriverThresholds();
+
+      // FOR NOW : SHOULD BE REMOVED
+      thresholds = DriverHealthThresholds(
+        avgHeartRate: 80,
+        minHeartRate: 60,
+        maxHeartRate: 100,
+        avgSpo2: 96,
+        minSpo2: 95,
+        maxSpo2: 100,
+        avgTemp: 36.5,
+        minTemp: 36.0,
+        maxTemp: 37.5,
+      );
+
+      // 2. Start (predrive health check)
+      bool checkPassed = await TripService().startPreDriveCheck(
+        thresholds: thresholds,
+      );
+      if (!checkPassed) {
+        traceLog(' COULDN\'T START TRIP!!! ');
+        return;
+      }
+
+      // 3. start trip in database
       final updatedTrip = await TripService().patchTrip(
         trip!.tripId,
         TripStatus.ONGOING,
@@ -112,11 +144,19 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         trip = updatedTrip;
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Trip started successfully')),
       );
+
+      // 4. start Trip Tracking and update activetripId
+      TripService().startTripTracking(
+        tripId: trip!.tripId,
+        thresholds: thresholds,
+      );
       navigateToOngoingPage();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -333,8 +373,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                             //   return;
                             // }
                             buttonActionLoading ? null : _startTrip();
-                            print('start trip');
-                            TripService.instance.startTrip(tripId: trip!.tripId);
+                            print('start trip checkings');
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF2935E0),

@@ -39,31 +39,40 @@ class UserService {
     }
   }
 
-  static Future<dynamic> createHealthReadings(
+  static Future<bool> createHealthReadings(
     VitalReadings readings,
     int tripId,
   ) async {
     try {
       int? userId = await StorageService.getId();
+      traceLog('createHealthReadings userId', userId);
       final response = await http.post(
         Uri.parse("$baseUrl/api/users/$userId/avg-health-readings"),
         headers: DeviceAuth.systemAuthHeader(),
-        body: {
+        body: jsonEncode({
           'avgHeartRate': readings.heartRate,
           'avgSpo2': readings.spo2,
           'avgTemp': readings.temp,
           'tripId': tripId,
-        },
+        }),
       );
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 203) {
         final data = jsonDecode(response.body);
-        traceLog("Avg Reading Creation Successful , $data");
+        traceLog(
+          "Avg Reading Creation Successful , $data, ${response.statusCode}",
+        );
         // must return valid data , if changed to success code = 203 (no content)- send true for successful request
-        return data;
+        return true;
       } else {
-        throw Exception("Failed to create avg readings: ${response.body}");
+        traceLog('failed to create trip avg readings', response.body);
+        throw Exception(
+          "Failed to create avg readings: ${response.body},  ${response.statusCode}",
+        );
       }
     } catch (e) {
+      traceLog('failed to create trip avg readings', e);
       throw Exception("Failed to create avg readings: $e");
     }
   }

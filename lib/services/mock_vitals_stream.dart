@@ -20,9 +20,9 @@ Stream<VitalReadings> mockVitalsStream() {
   final random = Random();
   return Stream.periodic(Duration(seconds: 10), (_) {
     return VitalReadings(
-      heartRate: 110 + random.nextDouble() * 5,
-      spo2: 91 + random.nextDouble() * 2,
-      temp: 36.5,
+      heartRate: 80 + random.nextDouble() * 40,
+      spo2: 91 + random.nextDouble() * 5,
+      temp: 35.5,
       timestamp: DateTime.now(),
     );
   });

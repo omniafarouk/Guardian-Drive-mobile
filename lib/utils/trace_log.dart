@@ -24,7 +24,7 @@ void traceLog(String step, [dynamic data]) {
     11,
     19,
   ); // HH:MM:SS
-  logger.i('\n[$timestamp] $step${data != null ? ' → $data' : ''}');
+  logger.i('[$timestamp] $step${data != null ? ' → $data' : ''}');
 }
 
 // // type could be 'i' , 'f' , 'd' , 'e'
