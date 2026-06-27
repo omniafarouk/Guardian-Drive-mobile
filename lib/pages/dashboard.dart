@@ -157,10 +157,9 @@ class _DashboardState extends State<Dashboard> {
         setState(() => isLoading = false);
         return;
       }
-      traceLog("location in dashboard", location);
-
       setState(() {
         ongoingTrip = trip; // ✅ set trip immediately, regardless of location
+        TripService().activateTrip(trip.tripId);
         isLoading = false;
       });
 
@@ -317,6 +316,7 @@ class _DashboardState extends State<Dashboard> {
         return "Connected";
     }
   }
+
   getCarConnectionStatus() {
     switch (BandBleService.instance.status) {
       case BleDeviceStatus.disconnected:
@@ -331,6 +331,7 @@ class _DashboardState extends State<Dashboard> {
         return "Connected";
     }
   }
+
   Color getBatteryStatusColor(int batt) {
     if (BandBleService.instance.status != BleDeviceStatus.ready)
       return Colors.grey;
@@ -392,18 +393,18 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     double percent = bpm / 150;
-    final bounds = route.isNotEmpty
-        ? LatLngBounds.fromPoints(route)
-        : LatLngBounds.fromPoints([
-            LatLng(
-              ongoingTrip?.startLatitude ?? 0,
-              ongoingTrip?.startLongitude ?? 0,
-            ),
-            LatLng(
-              ongoingTrip?.destLatitude ?? 0,
-              ongoingTrip?.destLongitude ?? 0,
-            ),
-          ]);
+    // final bounds = route.isNotEmpty
+    //     ? LatLngBounds.fromPoints(route)
+    //     : LatLngBounds.fromPoints([
+    //         LatLng(
+    //           ongoingTrip?.startLatitude ?? 0,
+    //           ongoingTrip?.startLongitude ?? 0,
+    //         ),
+    //         LatLng(
+    //           ongoingTrip?.destLatitude ?? 0,
+    //           ongoingTrip?.destLongitude ?? 0,
+    //         ),
+    //       ]);
 
     return Scaffold(
       appBar: CustomAppBar(title: "Overview"),
@@ -685,7 +686,6 @@ class _DashboardState extends State<Dashboard> {
                               status == BleDeviceStatus.connected ||
                               status == BleDeviceStatus.ready;
                           return Column(
-
                             children: [
                               Row(
                                 children: [
@@ -736,27 +736,28 @@ class _DashboardState extends State<Dashboard> {
                         fontSize: 18,
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () => {
-                            Navigator.pushNamed(
-                              context,
-                              '/ongoing-trip',
-                              arguments: {
-                                "destLatitude": ongoingTrip!.destLatitude,
-                                "destLongitude": ongoingTrip!.destLongitude,
-                                "startLatitude": ongoingTrip!.startLatitude,
-                                "startLongitude": ongoingTrip!.startLongitude,
-                              },
-                            ),
-                          },
-                          label: Text('Go to map'),
-                          icon: Icon(Icons.arrow_forward_rounded),
-                        ),
-                      ],
-                    ),
+                    if (ongoingTrip != null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => {
+                              Navigator.pushNamed(
+                                context,
+                                '/ongoing-trip',
+                                arguments: {
+                                  "destLatitude": ongoingTrip!.destLatitude,
+                                  "destLongitude": ongoingTrip!.destLongitude,
+                                  "startLatitude": ongoingTrip!.startLatitude,
+                                  "startLongitude": ongoingTrip!.startLongitude,
+                                },
+                              ),
+                            },
+                            label: Text('Go to map'),
+                            icon: Icon(Icons.arrow_forward_rounded),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
 
@@ -786,12 +787,35 @@ class _DashboardState extends State<Dashboard> {
                               initialZoom: 13,
 
                               onMapReady: () {
-                                mapController.fitCamera(
-                                  CameraFit.bounds(
-                                    bounds: bounds,
-                                    padding: const EdgeInsets.all(30),
-                                  ),
-                                );
+                                if (route.isNotEmpty) {
+                                  mapController.fitCamera(
+                                    CameraFit.bounds(
+                                      bounds: LatLngBounds.fromPoints(route),
+                                      padding: const EdgeInsets.all(30),
+                                    ),
+                                  );
+                                } else if (ongoingTrip != null) {
+                                  final start = LatLng(
+                                    ongoingTrip!.startLatitude,
+                                    ongoingTrip!.startLongitude,
+                                  );
+                                  final dest = LatLng(
+                                    ongoingTrip!.destLatitude,
+                                    ongoingTrip!.destLongitude,
+                                  );
+                                  if (start.latitude != dest.latitude ||
+                                      start.longitude != dest.longitude) {
+                                    mapController.fitCamera(
+                                      CameraFit.bounds(
+                                        bounds: LatLngBounds.fromPoints([
+                                          start,
+                                          dest,
+                                        ]),
+                                        padding: const EdgeInsets.all(30),
+                                      ),
+                                    );
+                                  }
+                                }
                               },
                             ),
                             children: [
@@ -1041,7 +1065,7 @@ class _DashboardState extends State<Dashboard> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    await TripService().endTrip();
+                    await TripService().endTripTracking();
                   },
                   child: Text('TEST: End Trip'),
                 ),

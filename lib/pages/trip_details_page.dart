@@ -14,6 +14,7 @@ import '../widgets/map.dart' as MapDrawer;
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import '../services/car_ble_service.dart';
 import '../services/band_ble_service.dart';
+import '../models//enums.dart';
 
 String _formatTripDate(DateTime date) {
   return DateFormat("MMM d, yyyy 'at' h:mm a").format(date);
@@ -353,25 +354,25 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   canStartTrip
                       ? ElevatedButton(
                           onPressed: () {
-                            // if (!CarBleService.instance.isConnected ||
-                            //     !BandBleService.instance.isConnected) {
-                            //   _showNotConnectedDialog(
-                            //     "Please connect both the band and vehicle first",
-                            //   );
-                            //   return; // important — stop here
-                            // }
-                            // if (!BandBleService.instance.isConnected) {
-                            //   _showNotConnectedDialog(
-                            //     "Please connect the driver band first",
-                            //   );
-                            //   return;
-                            // }
-                            // if (!CarBleService.instance.isConnected) {
-                            //   _showNotConnectedDialog(
-                            //     "Please connect the vehicle first",
-                            //   );
-                            //   return;
-                            // }
+                            if (CarBleService.instance.status != BleDeviceStatus.ready  ||
+                                BandBleService.instance.status != BleDeviceStatus.ready) {
+                              _showNotConnectedDialog(
+                                "Please connect both the band and vehicle first",
+                              );
+                              return; // important — stop here
+                            }
+                            if (BandBleService.instance.status != BleDeviceStatus.ready) {
+                              _showNotConnectedDialog(
+                                "Please connect the driver band first",
+                              );
+                              return;
+                            }
+                            if (CarBleService.instance.status != BleDeviceStatus.ready) {
+                              _showNotConnectedDialog(
+                                "Please connect the vehicle first",
+                              );
+                              return;
+                            }
                             buttonActionLoading ? null : _startTrip();
                             print('start trip checkings');
                           },

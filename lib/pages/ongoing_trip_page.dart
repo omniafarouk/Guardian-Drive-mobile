@@ -1,8 +1,10 @@
-// import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:guardian_drive_mobile/models/trip.dart';
+import 'package:guardian_drive_mobile/services/location_service.dart';
 import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
 import 'package:guardian_drive_mobile/services/trip_service.dart';
@@ -51,7 +53,10 @@ class _OngoingTripState extends State<OngoingTrip> {
   void _maybeSaveLocation(LatLng newLocation) {
     final now = DateTime.now();
     if (_lastSavedLocation == null) {
-      TripService.sendTripLocation(TripService.activeTripId!, newLocation);
+      LocationService.createTripLocation(
+        newLocation.latitude,
+        newLocation.longitude,
+      );
       return;
     }
     final movedMeters = Distance().as(
@@ -61,8 +66,19 @@ class _OngoingTripState extends State<OngoingTrip> {
     );
     final timeSinceLastWrite = now.difference(_lastLocationWrite!);
     if (movedMeters >= 100 || timeSinceLastWrite >= Duration(minutes: 1)) {
-      TripService.sendTripLocation(TripService.activeTripId!, newLocation);
+      LocationService.createTripLocation(
+        newLocation.latitude,
+        newLocation.longitude,
+      );
     }
+  }
+
+  void endTrip() async {
+    await TripService().patchTrip(
+      TripService().activeTripId!,
+      TripStatus.COMPLETED,
+    );
+    TripService().endTripTracking();
   }
 
   int getClosestRouteIndex(LatLng current, List<LatLng> route) {
@@ -312,14 +328,24 @@ class _OngoingTripState extends State<OngoingTrip> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          remainingDistance != null
-                              ? remainingDistance! > 1000
+                        remainingDistance == null
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                remainingDistance! > 1000
                                     ? '${(remainingDistance! / 10000).toStringAsFixed(2)} Km'
-                                    : '${remainingDistance!.toStringAsFixed(2)} m'
-                              : '0',
-                          style: TextStyle(color: Colors.white, fontSize: 20),
-                        ),
+                                    : '${remainingDistance!.toStringAsFixed(2)} m',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                ),
+                              ),
                       ],
                     ),
                     SizedBox(width: 10),
