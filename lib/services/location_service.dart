@@ -12,7 +12,7 @@ import 'api_client_service.dart' as api_service;
 class LocationService {
   static const baseUrl = api_service.ApiClient.baseUrl;
 
-  Future<TripLocation> createTripLocation(
+  static Future<TripLocation> createTripLocation(
     double latitude,
     double longitude,
   ) async {

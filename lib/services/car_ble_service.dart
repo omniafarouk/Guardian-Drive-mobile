@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import '../models/enums.dart';
 
 class CarBleService {
   // SINGLETON
@@ -27,9 +28,16 @@ class CarBleService {
   StreamSubscription? _notifySubscription; // Listens for notifications
 
   // bool isConnected = false;
-  final ValueNotifier<bool> connectionNotifier = ValueNotifier(false);
-  bool get isConnected => connectionNotifier.value;
-  set isConnected(bool val) => connectionNotifier.value = val;
+  // final ValueNotifier<bool> connectionNotifier = ValueNotifier(false);
+  // bool get isConnected => connectionNotifier.value;
+  // set isConnected(bool val) => connectionNotifier.value = val;
+
+  final ValueNotifier<BleDeviceStatus> statusNotifier = ValueNotifier(
+    BleDeviceStatus.disconnected,
+  );
+
+  BleDeviceStatus get status => statusNotifier.value;
+  set status(BleDeviceStatus value) => statusNotifier.value = value;
 
   bool _precheckPassed = false;
   bool get precheckPassed => _precheckPassed;
@@ -38,13 +46,21 @@ class CarBleService {
 
   static const int maxReconnectAttempts = 10; // 10 × 3 sec = 30 sec
 
-  final StreamController<String> commandController =
+  final StreamController<String> messagesController =
       StreamController.broadcast(); // crash events, status
 
   Future<void> scanAndConnect() async {
-    print("[CAR] Scanning...");
+    status = BleDeviceStatus.connecting;
+    print("[CAR] scan and connect function called");
     _scanSubscription?.cancel();
+    final scanTimeout = Timer(const Duration(seconds: 10), () {
+      print("Scan timed out");
+      _scanSubscription?.cancel();
 
+      status = BleDeviceStatus.disconnected;
+
+      messagesController.add("Car not found for connection.");
+    });
     _scanSubscription = _ble
         .scanForDevices(
           withServices: [Uuid.parse(serviceUuid)],
@@ -64,27 +80,31 @@ class CarBleService {
   /// Call this when driver vitals cross a critical threshold.
   /// Sends "E" (Emergency stop) to the car.
   Future<void> severeCaseOccurred() async {
-    if (!isConnected) {
+    if (status != BleDeviceStatus.connected) {
       print("[CAR] Cannot send emergency — not connected");
-      commandController.add("EMERGENCY_SEND_FAILED");
+      messagesController.add(
+        "Car Connection lost. Can't stop it automatically right now.",
+      );
       return;
     }
 
     print("[CAR] SEVERE CASE — sending E to car");
     await _sendCommand("E");
-    commandController.add("EMERGENCY_SENT");
+    messagesController.add("Stopping the car in progress..");
   }
 
   Future<void> sendPredriveCheckPassed() async {
-    if (!isConnected) {
+    if (status != BleDeviceStatus.connected) {
       print("[CAR] cannot send predrive check success — not connected");
-      commandController.add("PASS_SEND_FAILED");
+      messagesController.add(
+        "Car Connection lost. Predrive check sending failed.",
+      );
       return;
     }
 
     print("Sent predrive check to car");
     await _sendCommand("P");
-    commandController.add("PASS_CAR_CHECK");
+    // messagesController.add("PASS_CAR_CHECK");
   }
 
   Future<void> _connect(String deviceId) async {
@@ -100,25 +120,23 @@ class CarBleService {
           (state) async {
             if (state.connectionState == DeviceConnectionState.connected) {
               print("[CAR] Connected");
-              isConnected = true;
+              status = BleDeviceStatus.connected;
               _reconnectAttempts = 0;
               // NOTE: no need for MTU neotiation here
               // (sent and received data through this service is very small)
 
               _subscribeToNotifications();
-              commandController.add("CAR_CONNECTED");
             }
 
             if (state.connectionState == DeviceConnectionState.disconnected) {
               print("[CAR] Disconnected");
-              isConnected = false;
-              commandController.add("CAR_DISCONNECTED");
+              status = BleDeviceStatus.disconnected;
               _reconnect();
             }
           },
           onError: (e) {
             print("[CAR] Connection error: $e");
-            isConnected = false;
+            status = BleDeviceStatus.disconnected;
             _reconnect();
           },
         );
@@ -140,20 +158,23 @@ class CarBleService {
         switch (message) {
           case "P":
             print("Car Hardware precheck passed, car can move now");
-            commandController.add("CAR CONNECTION ESTABLISHED SUCCESSFULLY");
             _precheckPassed = true;
+            status = BleDeviceStatus.ready;
             break;
           case "F":
             print("Car precheck failed");
             _precheckPassed = false;
-            commandController.add(
-              "CONNECTION FALIURE, PLEASE CONTACT YOUR FLEET MANAGER",
+            messagesController.add(
+              "Car Connection failed, please contact your fleet manager.",
             );
+
+            status = BleDeviceStatus.precheckFailed;
             break;
           case "C":
             // Car detected a crash via its own sensors
             print("[CAR] CRASH DETECTED");
-            commandController.add("CRASH_DETECTED");
+            messagesController.add("CRASH_DETECTED");
+            // TRIGGER SOS, OR TELL THE FLEET MANAGER?
             break;
 
           default:
@@ -185,7 +206,9 @@ class CarBleService {
 
     if (_reconnectAttempts >= maxReconnectAttempts) {
       print("[CAR] Reconnect timeout");
-      commandController.add("CAR_UNREACHABLE");
+      messagesController.add(
+        "Car Connection lost. Unable to reconnect, please try again.",
+      );
       return;
     }
 
@@ -197,7 +220,7 @@ class CarBleService {
   }
 
   bool isCarConnected() {
-    return isConnected;
+    return status == BleDeviceStatus.connected;
   }
 
   void dispose() {

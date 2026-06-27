@@ -14,6 +14,7 @@ import '../widgets/map.dart' as MapDrawer;
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import '../services/car_ble_service.dart';
 import '../services/band_ble_service.dart';
+import '../models//enums.dart';
 
 String _formatTripDate(DateTime date) {
   return DateFormat("MMM d, yyyy 'at' h:mm a").format(date);
@@ -89,6 +90,20 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
     }
   }
 
+  void navigateToOngoingPage() {
+    if (!mounted) return;
+    Navigator.pushNamed(
+      context,
+      '/ongoing-trip',
+      arguments: {
+        "destLatitude": trip!.destLatitude,
+        "destLongitude": trip!.destLongitude,
+        "startLatitude": trip!.startLatitude,
+        "startLongitude": trip!.startLongitude,
+      },
+    );
+  }
+
   Future<void> _startTrip() async {
     if (trip == null) return;
     setState(() {
@@ -142,6 +157,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         tripId: trip!.tripId,
         thresholds: thresholds,
       );
+      navigateToOngoingPage();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -322,23 +338,41 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   //   _VehicleCard(car: car!),
                   SizedBox(height: 15),
                   // start trip button
-                  canStartTrip
+                  trip!.status == TripStatus.ONGOING
                       ? ElevatedButton(
                           onPressed: () {
-                            if (!CarBleService.instance.isConnected ||
-                                !BandBleService.instance.isConnected) {
+                            navigateToOngoingPage();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF2935E0),
+                            minimumSize: const Size(150, 50),
+                          ),
+                          child: Text(
+                            "Go To Maps",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        )
+                      : canStartTrip
+                      ? ElevatedButton(
+                          onPressed: () {
+                            if (CarBleService.instance.status !=
+                                    BleDeviceStatus.ready ||
+                                BandBleService.instance.status !=
+                                    BleDeviceStatus.ready) {
                               _showNotConnectedDialog(
                                 "Please connect both the band and vehicle first",
                               );
                               return; // important — stop here
                             }
-                            if (!BandBleService.instance.isConnected) {
+                            if (BandBleService.instance.status !=
+                                BleDeviceStatus.ready) {
                               _showNotConnectedDialog(
                                 "Please connect the driver band first",
                               );
                               return;
                             }
-                            if (!CarBleService.instance.isConnected) {
+                            if (CarBleService.instance.status !=
+                                BleDeviceStatus.ready) {
                               _showNotConnectedDialog(
                                 "Please connect the vehicle first",
                               );

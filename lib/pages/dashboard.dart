@@ -2,16 +2,20 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/models/enums.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
+import 'package:guardian_drive_mobile/widgets/custom_card.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:guardian_drive_mobile/widgets/sos_button_widget.dart';
 import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
@@ -19,7 +23,6 @@ import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:guardian_drive_mobile/services/home_service.dart';
-import 'package:guardian_drive_mobile/services/wearableBand_service.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/models/trip_location.dart';
 //import 'package:geolocator/geolocator.dart';
@@ -38,6 +41,8 @@ class _DashboardState extends State<Dashboard> {
   double? lng;
   List<LatLng> route = [];
   double bpm = 0.0;
+  double temp = 0.0;
+  double spO2 = 0.0;
   // int battery = 0;
   // bool isConnected = false;
   String username = "";
@@ -74,13 +79,13 @@ class _DashboardState extends State<Dashboard> {
 
       // you can update UI here too using setState if needed
     });
-    carBleSub = CarBleService.instance.commandController.stream.listen((data) {
+    carBleSub = CarBleService.instance.messagesController.stream.listen((data) {
       print("CAR BLE DATA FROM DASHBOARD: $data");
 
       // you can update UI here too using setState if needed
     });
     initDashboard();
-    startLiveBPM();
+    startLiveReadings();
     // startTracking();
     // Subscribe to the same broadcast stream
     // _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
@@ -150,43 +155,76 @@ class _DashboardState extends State<Dashboard> {
       final trip = await HomeService.getOnGoingTrip(token);
 
       if (trip == null) {
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => isLoading = false);
         return;
       }
-
-      final location = await HomeService().getTripLocation(trip.tripId, token);
-      traceLog("location in dashboard", location);
-
       setState(() {
-        ongoingTrip = trip;
-        currentLocation = location;
+        ongoingTrip = trip; // ✅ set trip immediately, regardless of location
+        TripService().activateTrip(trip.tripId);
         isLoading = false;
       });
-      await loadRoute();
+
+      // load location separately — failure won't affect trip display
+      try {
+        final location = await HomeService().getTripLocation(
+          trip.tripId,
+          token,
+        );
+        setState(() => currentLocation = location);
+        await loadRoute();
+      } catch (e) {
+        // location not available yet — that's fine, trip still shows
+        print("No location yet for trip: $e");
+        setState(() => currentLocation = null);
+      }
 
       print("TRIP ID: ${trip.tripId}");
-      print("LAT: ${location.latitude}");
-      print("LNG: ${location.longitude}");
     } catch (e) {
-      if (e.toString().contains("Failed to load location")) {
-        setState(() {
-          currentLocation = null;
-          ongoingTrip = null;
-          isLoading = false;
-        });
-
-        return;
-      }
-
       print("Trip load error: $e");
-
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
+  // Future<void> loadTripLocation(String token) async {
+  //   try {
+  //     final trip = await HomeService.getOnGoingTrip(token);
+
+  //     if (trip == null) {
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //       return;
+  //     }
+
+  //     final location = await HomeService().getTripLocation(trip.tripId, token);
+
+  //     setState(() {
+  //       ongoingTrip = trip;
+  //       currentLocation = location;
+  //       isLoading = false;
+  //     });
+  //     await loadRoute();
+
+  //     print("TRIP ID: ${trip.tripId}");
+  //     print("LAT: ${location.latitude}");
+  //     print("LNG: ${location.longitude}");
+  //   } catch (e) {
+  //     if (e.toString().contains("Failed to load location")) {
+  //       setState(() {
+  //         currentLocation = null;
+  //         ongoingTrip = trip;
+  //         isLoading = false;
+  //       });
+
+  //       return;
+  //     }
+
+  //     print("Trip load error: $e");
+
+  //     setState(() {
+  //       isLoading = false;
+  //     });
+  //   }
+  // }
 
   Future<void> getusername() async {
     final name = await HomeService.getUserName();
@@ -240,13 +278,14 @@ class _DashboardState extends State<Dashboard> {
   //   });
   // }
 
-  void startLiveBPM() {
+  void startLiveReadings() {
     timer = Timer.periodic(reloadBpmRange, (_) {
       // refresh the live bpm every 10 seconds not on real readings , is this correct tho??
       if (!mounted) return;
       setState(() {
         bpm = _latestReading?.heartRate ?? bpm;
-        // TODO : SHOULD UPDATE REST OF THE READINGS TOO?
+        spO2 = _latestReading?.spo2 ?? spO2;
+        temp = _latestReading?.temp ?? temp;
       }); // just rebuild — _latestReading already has the latest
     });
   }
@@ -264,40 +303,109 @@ class _DashboardState extends State<Dashboard> {
     });
   }
 */
-  String getStatus(double bpm) {
-    if (!BandBleService.instance.isConnected) return "NO BAND";
-
-    if (bpm >= 60 && bpm <= 100) {
-      return "FIT TO DRIVE";
-    } else {
-      return "NOT SAFE";
+  getBandConnectionStatus() {
+    switch (BandBleService.instance.status) {
+      case BleDeviceStatus.disconnected:
+        return "No Band";
+      case BleDeviceStatus.connecting:
+        return "Connecting..";
+      case BleDeviceStatus.connected:
+        return "Running precheck..";
+      case BleDeviceStatus.precheckFailed:
+        return "Precheck Failed, Please Contact Your fleet manager.";
+      case BleDeviceStatus.ready:
+        return "Connected";
     }
   }
 
-  Color getStatusColor(double bpm) {
-    if (!BandBleService.instance.isConnected) return Colors.grey;
-    if (bpm >= 60 && bpm <= 100) {
+  getCarConnectionStatus() {
+    switch (BandBleService.instance.status) {
+      case BleDeviceStatus.disconnected:
+        return "No Car Connected.";
+      case BleDeviceStatus.connecting:
+        return "Connecting..";
+      case BleDeviceStatus.connected:
+        return "Running precheck..";
+      case BleDeviceStatus.precheckFailed:
+        return "Precheck Failed, Please Contact Your fleet manager.";
+      case BleDeviceStatus.ready:
+        return "Connected";
+    }
+  }
+
+  Color getBatteryStatusColor(int batt) {
+    if (BandBleService.instance.status != BleDeviceStatus.ready)
+      return Colors.grey;
+    if (batt < 20) {
+      return Colors.redAccent;
+    }
+    return Colors.greenAccent;
+  }
+
+  Color getBPMStatusColor() {
+    if (BandBleService.instance.status != BleDeviceStatus.ready)
+      return Colors.grey;
+    if (bpm >= 120) {
+      return Colors.redAccent;
+    } else if (bpm >= 90 && bpm < 120) {
+      return Colors.amberAccent;
+    } else
       return Colors.greenAccent;
+  }
+
+  Color getSpOStatusColor() {
+    if (BandBleService.instance.status != BleDeviceStatus.ready)
+      return Colors.grey;
+    if (spO2 <= 100) {
+      return Colors.redAccent;
+    } else if (spO2 >= 95 && spO2 <= 97) {
+      return Colors.amberAccent;
+    } else
+      return Colors.greenAccent;
+  }
+
+  Color getTempStatusColor() {
+    if (BandBleService.instance.status != BleDeviceStatus.ready)
+      return Colors.grey;
+    if (temp >= 36.5 && temp <= 37.5) {
+      return Colors.greenAccent;
+    } else if (temp > 36.5 && temp < 36.5 || temp > 37.5 && temp < 38) {
+      return Colors.amberAccent;
     } else {
       return Colors.redAccent;
+    }
+  }
+
+  Color getBandStatusColor() {
+    switch (BandBleService.instance.status) {
+      case BleDeviceStatus.disconnected:
+        return Colors.grey;
+      case BleDeviceStatus.connecting:
+        return Colors.white;
+      case BleDeviceStatus.connected:
+        return Colors.white;
+      case BleDeviceStatus.precheckFailed:
+        return Colors.redAccent;
+      case BleDeviceStatus.ready:
+        return Colors.greenAccent;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     double percent = bpm / 150;
-    final bounds = route.isNotEmpty
-        ? LatLngBounds.fromPoints(route)
-        : LatLngBounds.fromPoints([
-            LatLng(
-              ongoingTrip?.startLatitude ?? 0,
-              ongoingTrip?.startLongitude ?? 0,
-            ),
-            LatLng(
-              ongoingTrip?.destLatitude ?? 0,
-              ongoingTrip?.destLongitude ?? 0,
-            ),
-          ]);
+    // final bounds = route.isNotEmpty
+    //     ? LatLngBounds.fromPoints(route)
+    //     : LatLngBounds.fromPoints([
+    //         LatLng(
+    //           ongoingTrip?.startLatitude ?? 0,
+    //           ongoingTrip?.startLongitude ?? 0,
+    //         ),
+    //         LatLng(
+    //           ongoingTrip?.destLatitude ?? 0,
+    //           ongoingTrip?.destLongitude ?? 0,
+    //         ),
+    //       ]);
 
     return Scaffold(
       appBar: CustomAppBar(title: "Overview"),
@@ -326,7 +434,14 @@ class _DashboardState extends State<Dashboard> {
                 ),
 
                 SizedBox(height: 20),
-
+                Text(
+                  "Band Status",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -337,39 +452,48 @@ class _DashboardState extends State<Dashboard> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       ValueListenableBuilder(
-                        valueListenable:
-                            BandBleService.instance.connectionNotifier,
-                        builder: (context, bandConnected, child) {
+                        valueListenable: BandBleService.instance.statusNotifier,
+                        builder: (context, status, child) {
+                          final bandConnected =
+                              status == BleDeviceStatus.connected ||
+                              status == BleDeviceStatus.ready;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Text(
-                              //   getStatus(),
-                              //   style: TextStyle(
-                              //     color: getStatusColor(),
-                              //     fontWeight: FontWeight.bold,
-                              //     fontSize: 16,
-                              //   ),
-                              // ),
-                              Text(
-                                getStatus(bpm),
-                                style: TextStyle(
-                                  color: getStatusColor(bpm),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                              Row(
+                                children: [
+                                  Text(
+                                    getBandConnectionStatus(),
+                                    style: TextStyle(
+                                      color: getBandStatusColor(),
+                                      // getStatusColor(bpm),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  if (!bandConnected)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        20,
+                                        0,
+                                        0,
+                                        0,
+                                      ),
+                                      child: ElevatedButton.icon(
+                                        icon: const Icon(Icons.bluetooth),
+                                        label: const Text('Connect to band'),
+
+                                        onPressed: () {
+                                          BandBleService.instance
+                                              .scanAndConnect();
+                                        },
+                                      ),
+                                    ),
+                                ],
                               ),
 
                               SizedBox(height: 10),
-                              Text(
-                                bandConnected
-                                    ? "Band Connected"
-                                    : "Disconnected",
-                                style: TextStyle(color: Colors.white70),
-                              ),
-
-                              SizedBox(height: 6),
-                              ValueListenableBuilder<double>(
+                              ValueListenableBuilder<int>(
                                 valueListenable:
                                     BandBleService.instance.battNotifier,
                                 builder: (context, batt, _) {
@@ -379,7 +503,7 @@ class _DashboardState extends State<Dashboard> {
                                       vertical: 5,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.green,
+                                      color: getBatteryStatusColor(batt),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
@@ -399,7 +523,7 @@ class _DashboardState extends State<Dashboard> {
                         lineWidth: 8,
                         percent: percent.clamp(0.0, 1.0),
                         animation: true,
-                        progressColor: getStatusColor(bpm),
+                        progressColor: getBPMStatusColor(),
                         backgroundColor: Colors.white24,
                         center: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -420,49 +544,203 @@ class _DashboardState extends State<Dashboard> {
                           ],
                         ),
                       ),
+                      Column(
+                        children: [
+                          CustomCard(
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                10,
+                                16,
+                                10,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.thermostat_outlined,
+                                    color: Colors.orangeAccent,
+                                    size: 40,
+                                  ),
+                                  Column(
+                                    children: [
+                                      const Text(
+                                        'Temperature',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      Text(
+                                        '$temp °C',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      Text(
+                                        'TEMP STATUS',
+                                        style: TextStyle(
+                                          color: getTempStatusColor(),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          CustomCard(
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                10,
+                                16,
+                                10,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.bloodtype,
+                                    color: Colors.blue,
+                                    size: 40,
+                                  ),
+                                  Column(
+                                    children: [
+                                      const Text(
+                                        'SpO₂',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      Text(
+                                        '$spO2 %',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Spo2 status',
+                                        style: TextStyle(
+                                          color: getSpOStatusColor(),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
                 SizedBox(height: 30),
+                Text(
+                  "Car Status",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ValueListenableBuilder(
+                        valueListenable: CarBleService.instance.statusNotifier,
+                        builder: (context, status, child) {
+                          final carConnected =
+                              status == BleDeviceStatus.connected ||
+                              status == BleDeviceStatus.ready;
+                          return Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    getCarConnectionStatus(),
+                                    style: TextStyle(
+                                      color: getBandStatusColor(),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  if (!carConnected)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        20,
+                                        0,
+                                        0,
+                                        0,
+                                      ),
+                                      child: ElevatedButton.icon(
+                                        icon: const Icon(Icons.bluetooth),
+                                        label: const Text('Connect to Car'),
 
-                Column(
+                                        onPressed: () {
+                                          CarBleService.instance
+                                              .scanAndConnect();
+                                        },
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       "Ongoing Trip",
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
-                    // SizedBox(width: 530),
-                    ElevatedButton.icon(
-                      label: Text('Connect to band'),
-                      onPressed: () {
-                        BandBleService.instance.scanAndConnect();
-                      },
-                    ),
-                    ElevatedButton.icon(
-                      label: Text('Connect to Car'),
-                      onPressed: () {
-                        CarBleService.instance.scanAndConnect();
-                      },
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => {
-                        Navigator.pushNamed(
-                          context,
-                          '/ongoing-trip',
-                          arguments: {
-                            "destLatitude": ongoingTrip!.destLatitude,
-                            "destLongitude": ongoingTrip!.destLongitude,
-                            "startLatitude": ongoingTrip!.startLatitude,
-                            "startLongitude": ongoingTrip!.startLongitude,
-                          },
-                        ),
-                      },
-                      label: Text('Go to map'),
-                      icon: Icon(Icons.arrow_forward_rounded),
-                    ),
+                    if (ongoingTrip != null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => {
+                              Navigator.pushNamed(
+                                context,
+                                '/ongoing-trip',
+                                arguments: {
+                                  "destLatitude": ongoingTrip!.destLatitude,
+                                  "destLongitude": ongoingTrip!.destLongitude,
+                                  "startLatitude": ongoingTrip!.startLatitude,
+                                  "startLongitude": ongoingTrip!.startLongitude,
+                                },
+                              ),
+                            },
+                            label: Text('Go to map'),
+                            icon: Icon(Icons.arrow_forward_rounded),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
 
@@ -473,7 +751,7 @@ class _DashboardState extends State<Dashboard> {
                   width: double.infinity,
                   child: isLoading
                       ? Center(child: CircularProgressIndicator())
-                      : currentLocation == null
+                      : ongoingTrip == null
                       ? Center(
                           child: Text(
                             "No ongoing trip",
@@ -492,12 +770,35 @@ class _DashboardState extends State<Dashboard> {
                               initialZoom: 13,
 
                               onMapReady: () {
-                                mapController.fitCamera(
-                                  CameraFit.bounds(
-                                    bounds: bounds,
-                                    padding: const EdgeInsets.all(30),
-                                  ),
-                                );
+                                if (route.isNotEmpty) {
+                                  mapController.fitCamera(
+                                    CameraFit.bounds(
+                                      bounds: LatLngBounds.fromPoints(route),
+                                      padding: const EdgeInsets.all(30),
+                                    ),
+                                  );
+                                } else if (ongoingTrip != null) {
+                                  final start = LatLng(
+                                    ongoingTrip!.startLatitude,
+                                    ongoingTrip!.startLongitude,
+                                  );
+                                  final dest = LatLng(
+                                    ongoingTrip!.destLatitude,
+                                    ongoingTrip!.destLongitude,
+                                  );
+                                  if (start.latitude != dest.latitude ||
+                                      start.longitude != dest.longitude) {
+                                    mapController.fitCamera(
+                                      CameraFit.bounds(
+                                        bounds: LatLngBounds.fromPoints([
+                                          start,
+                                          dest,
+                                        ]),
+                                        padding: const EdgeInsets.all(30),
+                                      ),
+                                    );
+                                  }
+                                }
                               },
                             ),
                             children: [
@@ -577,6 +878,7 @@ class _DashboardState extends State<Dashboard> {
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
                 ),
 

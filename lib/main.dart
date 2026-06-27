@@ -7,18 +7,29 @@ import 'package:flutter/services.dart';
 import 'package:guardian_drive_mobile/pages/alert_list_page.dart';
 import 'package:guardian_drive_mobile/pages/dashboard.dart';
 import 'package:guardian_drive_mobile/pages/login_page.dart';
-import 'package:guardian_drive_mobile/pages/newpage.dart';
+import 'package:guardian_drive_mobile/pages/ongoing_trip_page.dart';
 import 'package:guardian_drive_mobile/pages/profile_screen.dart';
 import 'package:guardian_drive_mobile/pages/trip_details_page.dart';
 import 'package:guardian_drive_mobile/pages/trip_list_page.dart';
 import 'package:guardian_drive_mobile/pages/alert_detail_page.dart';
 import 'package:guardian_drive_mobile/pages/reset_pass.dart';
 import 'package:guardian_drive_mobile/services/auth_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
+import 'package:guardian_drive_mobile/utils/app_messanger.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  BandBleService.instance.messagesController.stream.listen((message) {
+    print("BAND GLOBAL LISTENER GOT: $message");
+    AppMessenger.showBandMessage(message);
+  });
+  CarBleService.instance.messagesController.stream.listen((message) {
+    print("CAR GLOBAL LISTENER GOT: $message");
+    AppMessenger.showBandMessage(message);
+  });
   await SystemChrome.setPreferredOrientations([
     // Locks Application in portrait mode
     DeviceOrientation.portraitUp,

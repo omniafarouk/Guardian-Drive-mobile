@@ -5,6 +5,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/band_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
+import '../models/enums.dart';
 
 class BandBleService {
   // SINGLETON
@@ -29,9 +30,16 @@ class BandBleService {
   StreamSubscription? _notifySubscription; // Listens for notifications
 
   // bool isConnected = false;
-  final ValueNotifier<bool> connectionNotifier = ValueNotifier(false);
-  bool get isConnected => connectionNotifier.value;
-  set isConnected(bool val) => connectionNotifier.value = val;
+  // final ValueNotifier<bool> connectionNotifier = ValueNotifier(false);
+  // bool get isConnected => connectionNotifier.value;
+  // set isConnected(bool val) => connectionNotifier.value = val;
+
+  final ValueNotifier<BleDeviceStatus> statusNotifier = ValueNotifier(
+    BleDeviceStatus.disconnected,
+  );
+
+  BleDeviceStatus get status => statusNotifier.value;
+  set status(BleDeviceStatus value) => statusNotifier.value = value;
 
   int _reconnectAttempts = 0;
 
@@ -49,17 +57,17 @@ class BandBleService {
   bool get precheckPassed => _precheckPassed;
 
   final ValueNotifier<double> bpmNotifier = ValueNotifier(0.0);
-  // final ValueNotifier<double> spO2Notifier = ValueNotifier(0.0);
-  // final ValueNotifier<double> tempNotifier = ValueNotifier(0.0);
-  final ValueNotifier<double> battNotifier = ValueNotifier(0.0);
+  final ValueNotifier<double> spO2Notifier = ValueNotifier(0.0);
+  final ValueNotifier<double> tempNotifier = ValueNotifier(0.0);
+  final ValueNotifier<int> battNotifier = ValueNotifier(0);
 
   int? bandDeviceId;
 
-  double _lastSavedBatt = -1;
+  int _lastSavedBatt = -1;
   DateTime? _lastBattWrite;
 
   // Only update batter once per meaningful battery change or once every 5 mins
-  void _maybeSaveBattery(double newBatt) {
+  void _maybeSaveBattery(int newBatt) {
     final now = DateTime.now();
     final timeSinceLast = _lastBattWrite == null
         ? const Duration(hours: 99)
@@ -73,20 +81,33 @@ class BandBleService {
       _lastBattWrite = now;
       BandService.patchBand(
         bandDeviceId!,
-        batteryLevel: newBatt.toInt(),
+        batteryLevel: newBatt,
       ); // ← only battery, isConnected untouched
     }
   }
 
   // starts scanning
   Future<void> scanAndConnect() async {
+    status = BleDeviceStatus.connecting;
     bandDeviceId ??= await StorageService.getDeviceId();
     if (bandDeviceId == null) {
-      messagesController.add("NO_BAND_ASSIGNED");
+      messagesController.add("No Band is assigned.");
+      print("No band assigned for driver");
       return;
     }
-    print("scan and connect function called");
+    print("[BAND] scan and connect function called");
     _scanSubscription?.cancel();
+    final scanTimeout = Timer(const Duration(seconds: 10), () {
+      print("Scan timed out");
+
+      _scanSubscription?.cancel();
+
+      status = BleDeviceStatus.disconnected;
+
+      messagesController.add(
+        "Band not found. Please make sure the band is powered on and nearby.",
+      );
+    });
 
     _scanSubscription = _ble
         .scanForDevices(
@@ -101,6 +122,7 @@ class BandBleService {
 
           if (device.name == "ESP32_BAND") {
             print("FOUNDD $device.name");
+            scanTimeout.cancel();
 
             _deviceId = device.id;
 
@@ -123,8 +145,9 @@ class BandBleService {
           (connectionState) async {
             if (connectionState.connectionState ==
                 DeviceConnectionState.connected) {
+              status = BleDeviceStatus.connected;
               print("CONNECTION SUCCESSFUL");
-              isConnected = true;
+              // isConnected = true;
               _readyForReadings = false;
               _reconnectAttempts = 0;
               BandService.patchBand(bandDeviceId!, isConnected: true);
@@ -139,7 +162,6 @@ class BandBleService {
                   print(
                     "WARNING: MTU too low ($mtu), fragmentation will occur",
                   );
-                  messagesController.add("MTU_LOW"); // notify UI if needed
                 }
               } catch (e) {
                 print("MTU negotiation failed: $e");
@@ -149,9 +171,9 @@ class BandBleService {
 
             if (connectionState.connectionState ==
                 DeviceConnectionState.disconnected) {
+              status = BleDeviceStatus.disconnected;
               print("CONNECTION STATE: DISCONNECTED");
-
-              isConnected = false;
+              // isConnected = false;
               BandService.patchBand(bandDeviceId!, isConnected: false);
 
               _reconnect();
@@ -159,9 +181,8 @@ class BandBleService {
           },
           onError: (e) {
             print("Connection Error: $e");
-
-            isConnected = false;
-
+            status = BleDeviceStatus.disconnected;
+            // isConnected = false;
             _reconnect();
           },
         );
@@ -188,32 +209,32 @@ class BandBleService {
         if (message == "P") {
           print("Band precheck passed");
           _precheckPassed = true;
+          status = BleDeviceStatus.ready;
           await sendCommand("R");
           print("Mobile ready, sent R");
-          messagesController.add("CONNECTION ESTABLISHED SUCCESSFULLY");
+
           _readyForReadings = true;
         } else if (message == "F") {
           print("Band precheck FAILED");
           _precheckPassed = false;
-          messagesController.add(
-            "CONNECTION FALIURE, PLEASE CONTACT YOUR FLEET MANAGER",
-          );
+          status = BleDeviceStatus.precheckFailed;
+          messagesController.add("Band Connection failed, please contact your fleet manager.");
         }
         return;
       }
       if (message == "AD") {
         print("PLEASE ADJUST YOUR BAND");
-        messagesController.add("PLEASE ADJUST YOUR BAND");
+        messagesController.add("Please Adjust Your Band.");
         return;
       }
       if (message == "ET") {
         print("Not adjusted for too long, will enter sleep mode");
         messagesController.add(
-          "NOT ADJUSTED FOR TOO LONG -> ENTERED SLEEP MODE",
+          "Band not adjusted for too long and will enter sleep mode. Please restart your band.",
         );
         await sendCommand("E");
-        print("SENT TO BAND END TRIP, TO ENTER SLEEP MODE");
-        messagesController.add("SENT TO BAND END TRIP, TO ENTER SLEEP MODE");
+        print("SENT 'E' to BAND to END TRIP, TO ENTER SLEEP MODE");
+        // messagesController.add("SENT TO BAND END TRIP, TO ENTER SLEEP MODE");
         return;
       }
       // STARTS READING
@@ -251,7 +272,7 @@ class BandBleService {
           final Map<String, dynamic> data = jsonDecode(jsonStr);
           // UPDATE NOTIFIERS ↓
           bpmNotifier.value = (data['bpm'] ?? 0).toDouble();
-          battNotifier.value = (data['BATT'] ?? 0).toDouble();
+          battNotifier.value = (data['BATT'] ?? 0).toInt();
           _maybeSaveBattery(battNotifier.value);
           final bpm = data['bpm'];
           final spo2 = data['spO2'];
@@ -309,7 +330,7 @@ class BandBleService {
     if (_reconnectAttempts >= maxReconnectAttempts) {
       print("Reconnect timeout");
       messagesController.add(
-        "Connection lost. Unable to reconnect. Please check the band and try again.",
+        "Band Connection lost. Unable to reconnect. Please check the band and try again.",
       );
       return;
     }
