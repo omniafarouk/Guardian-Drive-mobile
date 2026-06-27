@@ -69,7 +69,7 @@ void showHealthAlertDialog(String conditionName, VitalReadings reading) {
 
         // End trips Calls Create Health Readings which need the trip to be completed/canceled first
         // therefore must update trip status first
-        TripService().endTrip();
+        TripService().endTripTracking();
 
         final freshContext = navigatorKey.currentContext;
         if (freshContext == null || !freshContext.mounted) return;

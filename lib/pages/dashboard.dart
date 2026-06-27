@@ -13,6 +13,7 @@ import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
+import 'package:guardian_drive_mobile/widgets/sos_button_widget.dart';
 import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -302,26 +303,8 @@ class _DashboardState extends State<Dashboard> {
       appBar: CustomAppBar(title: "Overview"),
       drawer: const SideBarDrawer(),
 
-      floatingActionButton: ValueListenableBuilder<bool>(
-        valueListenable: TripService.instance.tripIsActiveNotifier,
-        builder: (context, tripIsActive, child) {
-          return tripIsActive
-              ? FloatingActionButton(
-                  backgroundColor: Colors.red,
-                  onPressed: () async {
-                    traceLog('SOS TRIGGERED');
-                    await showConfirmSOSDialog(context, _latestReading);
-                  },
-                  child: const Text(
-                    'SOS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(); // renders nothing when no trip
-        },
+      floatingActionButton: SosFloatingButtonWidget(
+        latestReading: _latestReading,
       ),
 
       body: Container(
@@ -763,7 +746,7 @@ class _DashboardState extends State<Dashboard> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    await TripService().endTrip();
+                    await TripService().endTripTracking();
                   },
                   child: Text('TEST: End Trip'),
                 ),

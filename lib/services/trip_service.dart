@@ -123,7 +123,8 @@ class TripService {
 
   // called to stop the tracking and update avgReading in database
   // DOESN'T Actually end trip in database
-  Future<void> endTrip() async {
+  // TODO: FOR NORMAL COMPLETED TRIP , MUST BE CALLED OUTSIDE OF THIS FUNCTION
+  Future<void> endTripTracking() async {
     if (activeTripId == null) {
       clearActiveTrip();
       traceLog('endTrip called but no active trip');
