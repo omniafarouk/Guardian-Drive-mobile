@@ -138,6 +138,8 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         return;
       }
 
+      traceLog("Predrive Check Passed");
+
       // 3. start trip in database
       final updatedTrip = await TripService().patchTrip(
         trip!.tripId,
@@ -147,22 +149,31 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         trip = updatedTrip;
       });
 
+      traceLog("Trip Status updated");
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Trip started successfully')),
       );
 
-      // 4. start Trip Tracking and update activetripId
-      TripService().startTripTracking(
+      // normally should before it call predrive check and update database trip status
+      await TripService().startTripTracking(
         tripId: trip!.tripId,
         thresholds: thresholds,
+        testMode: true,
       );
+      print('Trip started — watch console for breach traces');
+
       navigateToOngoingPage();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Couldn\'t Start Trip:${e.toString().replaceAll('Exception: ', '')}',
+          ),
+        ),
+      );
     } finally {
       setState(() {
         buttonActionLoading = false;

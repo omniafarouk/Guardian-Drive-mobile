@@ -27,6 +27,8 @@ class PreDriveCheckService {
     final sub = vitalsStream.listen((reading) {
       if (completer.isCompleted) return;
 
+      traceLog("pre-drive checking ...");
+
       final breaches = checker.check(reading);
       final isBad = breaches.any(
         (b) =>
