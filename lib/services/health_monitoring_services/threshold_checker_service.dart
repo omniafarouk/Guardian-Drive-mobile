@@ -19,6 +19,7 @@ class ThresholdChecker {
       min: thresholds.minHeartRate,
       max: thresholds.maxHeartRate,
       avg: thresholds.avgHeartRate,
+      warningBuffer: 5,
       lowType: ConditionType.LOW_HEART_RATE,
       highType: ConditionType.HIGH_HEART_RATE,
       breaches: breaches,
@@ -26,9 +27,10 @@ class ThresholdChecker {
 
     _checkBound(
       value: reading.spo2,
-      min: thresholds.minSpo2,
+      min: thresholds.minSpo2 - 1,
       max: thresholds.maxSpo2,
       avg: thresholds.avgSpo2,
+      warningBuffer: 0,
       lowType: ConditionType.LOW_SPO2,
       highType: null, // SpO2 caps at 100% — no HIGH_SPO2 condition exists
       breaches: breaches,
@@ -39,6 +41,7 @@ class ThresholdChecker {
       min: thresholds.minTemp,
       max: thresholds.maxTemp,
       avg: thresholds.avgTemp,
+      warningBuffer: 1,
       lowType: ConditionType.LOW_TEMP,
       highType: ConditionType.HIGH_TEMP,
       breaches: breaches,
@@ -47,60 +50,58 @@ class ThresholdChecker {
     return breaches;
   }
 
-  // check bound , checks if it bad reading
   void _checkBound({
     required double value,
     required double min,
     required double max,
     required double avg,
+    required double warningBuffer, // ← add this
     required ConditionType lowType,
-    ConditionType? highType, // as there is no high spo2 range
+    ConditionType? highType,
     required List<ConditionBreach> breaches,
   }) {
     if (value < min) {
+      // past the limit → alert
       breaches.add(
         ConditionBreach(
           type: lowType,
-          severity: _classifySeverity(value, avg),
+          severity: ConditionSeverity.CRITICAL,
           value: value,
           baselineBreached: min,
         ),
       );
-    } else if (highType != null && value > max) {
-      // highType might be null as there is no HIGH_SPO2 XX
+    } else if (value <= min + warningBuffer) {
+      // inside warning zone → warning
       breaches.add(
         ConditionBreach(
-          type: highType,
-          severity: _classifySeverity(value, avg),
+          type: lowType,
+          severity: ConditionSeverity.MODERATE,
           value: value,
-          baselineBreached: max,
+          baselineBreached: min,
         ),
       );
     }
+    // same mirror logic for high side
+    if (highType != null) {
+      if (value > max) {
+        breaches.add(
+          ConditionBreach(
+            type: highType,
+            severity: ConditionSeverity.CRITICAL,
+            value: value,
+            baselineBreached: max,
+          ),
+        );
+      } else if (value >= max - warningBuffer) {
+        breaches.add(
+          ConditionBreach(
+            type: highType,
+            severity: ConditionSeverity.MODERATE,
+            value: value,
+            baselineBreached: max,
+          ),
+        );
+      }
+    }
   }
-
-  /// How far outside the limit, as a percentage of the limit itself,
-  /// determines severity. Tune these cutoffs based on clinical input —
-  /// these are reasonable starting defaults, not medically validated.
-
-  //  ----------- changed to match the pattern matcher logic somewhat ---------------
-  ConditionSeverity _classifySeverity(
-    double value,
-    double avgBaseline, // the driver's typical value — used for severity
-  ) {
-    // How far from NORMAL (avg), not from the limit
-    final deviation = (value - avgBaseline).abs() / avgBaseline;
-
-    if (deviation > 0.25) return ConditionSeverity.CRITICAL;
-    if (deviation > 0.10) return ConditionSeverity.MODERATE;
-    return ConditionSeverity.NORMAL;
-  }
-
-  // ConditionSeverity _classifySeverity(double value, double limit) {
-  //   final deviation = (value - limit).abs() / limit;
-
-  //   if (deviation > 0.25) return ConditionSeverity.CRITICAL;
-  //   if (deviation > 0.10) return ConditionSeverity.MODERATE;
-  //   return ConditionSeverity.NORMAL;
-  // }
 }

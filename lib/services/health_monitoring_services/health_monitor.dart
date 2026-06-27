@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/main.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/services/health_monitoring_services/alert_tier.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_trigger_coordinator.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/driver_baseline_with_noise_model.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/threshold_checker_service.dart';

@@ -6,7 +6,6 @@ import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_models.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_service.dart';
 import 'package:guardian_drive_mobile/services/medical_info_service.dart';
 import 'package:guardian_drive_mobile/services/mock_vitals_stream.dart';
@@ -38,12 +37,13 @@ class TripService {
   // all listen to this same stream — one BLE/mock connection, distributed.
 
   // Broadcast stream — multiple pages can listen to this
-  final StreamController<VitalReadings> _vitalsController =
-      StreamController<VitalReadings>.broadcast();
+  // final StreamController<VitalReadings> _vitalsController =
+  //     StreamController<VitalReadings>.broadcast();
 
   // Public stream that any page can subscribe to
-  Stream<VitalReadings> get vitalsStream => _vitalsController.stream;
-
+  // Stream<VitalReadings> get vitalsStream => _vitalsController.stream;
+  Stream<VitalReadings> get vitalsStream =>
+      BandBleService.instance.telemetryController.stream;
   // ── Internal services ─────────────────────────────────────────────
 
   StreamSubscription<VitalReadings>? _vitalsSubscription;
@@ -72,19 +72,19 @@ class TripService {
     tripIsActiveNotifier.value = false;
   }
 
-  void initiateVitalStream() {
-    if (_vitalsSubscription != null) return;
-    _vitalsSubscription = mockVitalsStream().listen((reading) {
-      _vitalsController.add(reading); // → broadcast to all subscribers
-      _vitalsAggregator!.onReading(reading); // → aggregation pipeline
-    });
+  // void initiateVitalStream() {
+  //   if (_vitalsSubscription != null) return;
+  //   _vitalsSubscription = mockVitalsStream().listen((reading) {
+  //     // _vitalsController.add(reading); // → broadcast to all subscribers
+  //     _vitalsAggregator!.onReading(reading); // → aggregation pipeline
+  //   });
 
-    // _vitalsSubscription = BandBleService.instance.telemetryController.stream
-    //     .listen((reading) {
-    //       _vitalsController.add(reading); // → broadcast to all subscribers
-    //       _vitalsAggregator!.onReading(reading); // → aggregation pipeline
-    //     });
-  }
+  //   // _vitalsSubscription = BandBleService.instance.telemetryController.stream
+  //   //     .listen((reading) {
+  //   //       _vitalsController.add(reading); // → broadcast to all subscribers
+  //   //       _vitalsAggregator!.onReading(reading); // → aggregation pipeline
+  //   //     });
+  // }
 
   Future<void> startTripTracking({
     required int tripId,
@@ -100,7 +100,7 @@ class TripService {
       _vitalsAggregator = VitalsAggregator(testMode: testMode);
       _vitalsAggregator!.start();
 
-      // 2. Start health monitoring
+      // 2. Start health monitoring — subscribes to vitalsStream internally
       _healthMonitor = HealthMonitorService(
         thresholds: thresholds,
         onAlertTriggered: (conditionName, reading) {
@@ -113,10 +113,13 @@ class TripService {
       );
       _healthMonitor!.start(vitalsStream);
 
-      // 3. Connect the vitals source → feeds BOTH aggregator and monitor
-      //    via the broadcast stream
-      initiateVitalStream();
+      // 3. Feed aggregator manually — VitalsAggregator has no stream
+      //    subscription of its own, it only exposes onReading()
+      _vitalsSubscription = vitalsStream.listen((reading) {
+        _vitalsAggregator!.onReading(reading);
+      });
     } catch (e) {
+      clearActiveTrip();
       throw Exception(e);
     }
   }
@@ -131,67 +134,42 @@ class TripService {
       return;
     }
     traceLog('TripService: trip ended', activeTripId);
-    // Stop the stream    <<<<-------------- later would be stopping the BLE stream
-    await _vitalsSubscription?.cancel();
-    _vitalsSubscription = null;
 
-    // Stop timers
-    VitalReadings? tripAvg = await _vitalsAggregator?.finalize();
-
+    // 1. Stop health monitor first — no more alerts while we're shutting down
     _healthMonitor?.stop();
     _healthMonitor = null;
 
-    if (tripAvg == null) return;
+    // 2. Stop feeding the aggregator
+    await _vitalsSubscription?.cancel();
+    _vitalsSubscription = null;
 
-    //const readings = 1;
-    // send to user Service
-    // could be wrapped in try to catch api service exception
+    // 3. Finalize aggregator — computes trip average from stored readings
+    VitalReadings? tripAvg = await _vitalsAggregator?.finalize();
+
+    if (tripAvg == null) {
+      clearActiveTrip();
+      return;
+    }
+
     try {
       final success = await UserService.createHealthReadings(
         tripAvg,
         activeTripId!,
       );
       if (success) {
-        // or do it at finalize() ?
-        _vitalsAggregator = null;
         traceLog(
-          'created Health readings at database, Deleting hive store',
+          'Created health readings at database, deleting hive store',
           tripAvg.toString(),
         );
-        HiveStore.clearAll();
+        HiveStore.clearAll(); // only wipe local data if POST succeeded
       }
     } catch (error) {
-      throw Exception("End Trip Failed , Try Again");
+      throw Exception('End Trip Failed, Try Again');
     } finally {
+      _vitalsAggregator = null;
       clearActiveTrip();
     }
   }
-
-  // DESIGN: Timeout checking after 5 mins
-  Future<bool> startPreDriveCheck({
-    required DriverHealthThresholds thresholds,
-    bool testMode = false,
-  }) async {
-    final PreDriveCheckService preDriveService = PreDriveCheckService(
-      thresholds: thresholds,
-      testMode: testMode,
-    );
-    final result = await preDriveService.run(vitalsStream);
-    if (result.canDrive) {
-      traceLog('Driver passed preCheck Successfully, He may proceed');
-      return true;
-    } else {
-      traceLog(
-        'Driver didn\'t pass preCheck , Driver Blocked By: ',
-        '${result.blockedBy}',
-      );
-      return false;
-    }
-    // Step 3 goes here — start the vitals stream
-    // Step 4 goes here — create a fresh HealthMonitorService
-    // Step 5 goes here — race timeout vs alert vs disconnect
-  }
-
   // ------- Api services ------------------
 
   Future<TripsResponse> getTrips({

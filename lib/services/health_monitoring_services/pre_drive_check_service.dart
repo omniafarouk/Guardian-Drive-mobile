@@ -1,104 +1,72 @@
-// services/pre_drive_check_service.dart
 import 'dart:async';
+
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_trigger_coordinator.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/driver_baseline_with_noise_model.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_models.dart';
+import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/threshold_checker_service.dart';
+import 'package:guardian_drive_mobile/services/medical_info_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 
 class PreDriveCheckService {
   final DriverHealthThresholds thresholds;
-  final Duration timeout;
-  final bool testMode;
+  final int requiredCleanReadings;
 
-  bool _cancelled = false;
+  PreDriveCheckService({
+    required this.thresholds,
+    this.requiredCleanReadings = 3,
+  });
 
-  PreDriveCheckService({required this.thresholds, this.testMode = false})
-    : timeout = testMode ? Duration(seconds: 20) : Duration(minutes: 2);
-
-  /// Runs the pre-drive health scan.
-  ///
-  /// [vitalsStream] — the same broadcast stream from TripService,
-  /// already running before this is called.
-  ///
-  /// Returns a [PreDriveResult] when one of three things happens:
-  ///   1. An AlertTier pattern is detected → blocked
-  ///   2. [timeout] expires with no serious match → passed
-  ///   3. [cancel()] is called → cancelled
-  Future<PreDriveResult> run(Stream<VitalReadings> vitalsStream) async {
-    _cancelled = false;
-
+  /// Returns a Future that resolves ONLY when the driver passes.
+  /// Never times out — keeps checking until clean streak is reached.
+  Future<void> run(Stream<VitalReadings> vitalsStream) async {
     final checker = ThresholdChecker(thresholds);
-    final baselineWithNoise = DriverBaselineWithNoise.fromThresholds(
-      thresholds,
-    );
+    final completer = Completer<void>();
+    int cleanStreak = 0;
 
-    final coordinator = BreachTriggerCoordinator(
-      baseline: baselineWithNoise,
-      testMode: testMode,
-    );
-
-    // Completer resolves the Future the moment a result is determined
-    final completer = Completer<PreDriveResult>();
-
-    StreamSubscription<VitalReadings>? sub;
-
-    // Timeout — if nothing serious found within the window, pass by default
-    final timer = Timer(timeout, () {
-      if (!completer.isCompleted) {
-        traceLog('Pre-drive check timed out — passed by default');
-        sub?.cancel();
-        completer.complete(const PreDriveResult(status: PreDriveStatus.passed));
-      }
-    });
-
-    sub = vitalsStream.listen((reading) {
+    final sub = vitalsStream.listen((reading) {
       if (completer.isCompleted) return;
 
-      if (_cancelled) {
-        timer.cancel();
-        sub?.cancel();
-        completer.complete(
-          const PreDriveResult(status: PreDriveStatus.cancelled),
-        );
-        return;
-      }
-
       final breaches = checker.check(reading);
-      final triggerEvaluation = coordinator.evaluate(
-        breaches,
-        DateTime.now(),
-        reading,
+      final isBad = breaches.any(
+        (b) =>
+            b.severity == ConditionSeverity.CRITICAL ||
+            b.severity == ConditionSeverity.MODERATE,
       );
 
-      if (!triggerEvaluation.hasAction) return;
-
-      traceLog(
-        'Pre-drive evaluation',
-        'tier=${triggerEvaluation.tier!.name} + condition=${triggerEvaluation.conditionName}',
-      );
-
-      if (triggerEvaluation.tier == AlertTier.alertTrigger ||
-          triggerEvaluation.tier == AlertTier.warning) {
-        // alert condition detected — block the driver
-        timer.cancel();
-        sub?.cancel();
-        completer.complete(
-          PreDriveResult(
-            status: PreDriveStatus.blocked,
-            blockedBy: triggerEvaluation.conditionName,
-          ),
+      if (isBad) {
+        cleanStreak = 0;
+        traceLog(
+          'PreDrive: bad reading, streak reset',
+          breaches.map((b) => b.type.name).join(', '),
         );
+      } else {
+        cleanStreak++;
+        traceLog(
+          'PreDrive: clean reading',
+          '$cleanStreak / $requiredCleanReadings',
+        );
+
+        if (cleanStreak >= requiredCleanReadings) {
+          completer.complete(); // passed — nothing else fires
+        }
       }
     });
 
-    return completer.future;
+    await completer.future; // waits here forever until passed
+    await sub.cancel();
   }
 
-  /// Call this when the driver taps "Cancel" on the pre-drive screen
-  void cancel() {
-    _cancelled = true;
+  static Future<bool> startPreDriveCheck({bool testMode = false}) async {
+    final thresholds = await MedicalInfoService().getDriverThresholds();
+
+    final preDriveService = PreDriveCheckService(thresholds: thresholds);
+
+    await preDriveService.run(
+      BandBleService.instance.telemetryController.stream,
+    );
+    // execution only reaches here when driver passes
+    traceLog('PreDrive: passed — driver may start trip');
+    return true;
   }
 }

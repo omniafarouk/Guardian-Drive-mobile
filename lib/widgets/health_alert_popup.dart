@@ -7,6 +7,7 @@ import 'package:guardian_drive_mobile/models/alert_request.dart';
 import 'package:guardian_drive_mobile/models/alert_summary.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/alert_service.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:guardian_drive_mobile/utils/alert_sound_activiator.dart';
@@ -67,6 +68,8 @@ void showHealthAlertDialog(String conditionName, VitalReadings reading) {
           throw Exception("Couldn't trigger Health Abnormal Alert");
         }
 
+        CarBleService.instance.severeCaseOccurred();
+        traceLog("Informed car to auto disable itself");
         // End trips Calls Create Health Readings which need the trip to be completed/canceled first
         // therefore must update trip status first
         TripService().endTripTracking();

@@ -1,0 +1,1 @@
+enum AlertTier { warning, alertTrigger }

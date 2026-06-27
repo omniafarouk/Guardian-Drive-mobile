@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_service.dart';
 import 'package:guardian_drive_mobile/services/medical_info_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
@@ -130,9 +131,8 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       );
 
       // 2. Start (predrive health check)
-      bool checkPassed = await TripService().startPreDriveCheck(
-        thresholds: thresholds,
-      );
+      bool checkPassed = await PreDriveCheckService.startPreDriveCheck();
+
       if (!checkPassed) {
         traceLog(' COULDN\'T START TRIP!!! ');
         return;
