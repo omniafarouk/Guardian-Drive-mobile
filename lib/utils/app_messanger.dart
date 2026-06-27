@@ -34,10 +34,10 @@ class AppMessenger {
             SizedBox(width: 8),
             Text(
               isError
-                  ? "Band Error"
+                  ? "Error"
                   : isWarning
-                  ? "Band Warning"
-                  : "Band",
+                  ? "Warning"
+                  : "Info",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],

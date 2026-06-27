@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:guardian_drive_mobile/services/ble_helper.dart';
 import '../models/enums.dart';
 
 class CarBleService {
@@ -45,15 +46,24 @@ class CarBleService {
   int _reconnectAttempts = 0;
 
   static const int maxReconnectAttempts = 10; // 10 × 3 sec = 30 sec
+  bool _allowReconnect = true;
 
   final StreamController<String> messagesController =
       StreamController.broadcast(); // crash events, status
 
   Future<void> scanAndConnect() async {
+    _allowReconnect = true;
+    final error = await BleHelper.checkBle(_ble);
+
+    if (error != null) {
+      status = BleDeviceStatus.disconnected;
+      messagesController.add(error);
+      return;
+    }
     status = BleDeviceStatus.connecting;
     print("[CAR] scan and connect function called");
     _scanSubscription?.cancel();
-    final scanTimeout = Timer(const Duration(seconds: 10), () {
+    final scanTimeout = Timer(const Duration(seconds: 30), () {
       print("Scan timed out");
       _scanSubscription?.cancel();
 
@@ -72,6 +82,7 @@ class CarBleService {
           print("FOUNDD $device.name");
           _deviceId = device.id;
           _scanSubscription?.cancel();
+          scanTimeout.cancel();
           _connect(device.id);
           // }
         });
@@ -79,7 +90,7 @@ class CarBleService {
 
   /// Call this when driver vitals cross a critical threshold.
   /// Sends "E" (Emergency stop) to the car.
-  Future<void> severeCaseOccurred() async {
+  Future<void> sendSevereCaseOccurred() async {
     if (status != BleDeviceStatus.connected) {
       print("[CAR] Cannot send emergency — not connected");
       messagesController.add(
@@ -163,11 +174,11 @@ class CarBleService {
             break;
           case "F":
             print("Car precheck failed");
+            _allowReconnect = false;
             _precheckPassed = false;
             messagesController.add(
               "Car Connection failed, please contact your fleet manager.",
             );
-
             status = BleDeviceStatus.precheckFailed;
             break;
           case "C":
@@ -178,6 +189,10 @@ class CarBleService {
             break;
 
           default:
+            messagesController.add(
+              "Car Connection when wrong, please contact your fleet manager.",
+            );
+            status = BleDeviceStatus.disconnected;
             print("[CAR] Unknown message: $message");
         }
       },
@@ -202,6 +217,10 @@ class CarBleService {
   }
 
   void _reconnect() {
+    if (!_allowReconnect) {
+      print("[CAR] Reconnect disabled.");
+      return;
+    }
     if (_deviceId == null) return;
 
     if (_reconnectAttempts >= maxReconnectAttempts) {
