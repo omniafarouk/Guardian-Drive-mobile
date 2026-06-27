@@ -64,7 +64,7 @@ class _DashboardState extends State<Dashboard> {
   final Duration reloadBpmRange = Duration(seconds: 10);
 
   // ------💡 TESTINGGGGG -----
-  final tripId = 26;
+  final tripId = 23;
 
   StreamSubscription? bandBleSub;
   StreamSubscription? carBleSub;
