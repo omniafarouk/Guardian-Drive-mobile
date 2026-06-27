@@ -7,6 +7,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/models/enums.dart';
+import 'package:guardian_drive_mobile/pages/trip_details_page.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/band_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
@@ -61,7 +62,7 @@ class _DashboardState extends State<Dashboard> {
 
   VitalReadings? _latestReading;
   late StreamSubscription<VitalReadings> _sub;
-  final Duration reloadBpmRange = Duration(seconds: 10);
+  final Duration reloadReadingsRange = Duration(seconds: 10);
 
   // ------💡 TESTINGGGGG -----
   final tripId = 23;
@@ -88,14 +89,14 @@ class _DashboardState extends State<Dashboard> {
     startLiveReadings();
     // startTracking();
     // Subscribe to the same broadcast stream
-    // _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
-    //   _latestReading = reading; // no setState — just store it quietly
-    // });
-
-    _sub = TripService().vitalsStream.listen((reading) {
-      // setState(() => _latestReading = reading);
+    _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
       _latestReading = reading; // no setState — just store it quietly
     });
+
+    // _sub = TripService().vitalsStream.listen((reading) {
+    //   // setState(() => _latestReading = reading);
+    //   _latestReading = reading; // no setState — just store it quietly
+    // });
   }
 
   @override
@@ -279,7 +280,7 @@ class _DashboardState extends State<Dashboard> {
   // }
 
   void startLiveReadings() {
-    timer = Timer.periodic(reloadBpmRange, (_) {
+    timer = Timer.periodic(reloadReadingsRange, (_) {
       // refresh the live bpm every 10 seconds not on real readings , is this correct tho??
       if (!mounted) return;
       setState(() {
@@ -311,6 +312,8 @@ class _DashboardState extends State<Dashboard> {
         return "Connecting..";
       case BleDeviceStatus.connected:
         return "Running precheck..";
+      case BleDeviceStatus.precheckPassed:
+        return "Waiting for car..";
       case BleDeviceStatus.precheckFailed:
         return "Precheck Failed, Please Contact Your fleet manager.";
       case BleDeviceStatus.ready:
@@ -319,7 +322,7 @@ class _DashboardState extends State<Dashboard> {
   }
 
   getCarConnectionStatus() {
-    switch (BandBleService.instance.status) {
+    switch (CarBleService.instance.status) {
       case BleDeviceStatus.disconnected:
         return "No Car Connected.";
       case BleDeviceStatus.connecting:
@@ -330,6 +333,8 @@ class _DashboardState extends State<Dashboard> {
         return "Precheck Failed, Please Contact Your fleet manager.";
       case BleDeviceStatus.ready:
         return "Connected";
+      default:
+        return "";
     }
   }
 
@@ -376,18 +381,16 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  Color getBandStatusColor() {
-    switch (BandBleService.instance.status) {
+  Color getStatusColor(BleDeviceStatus status) {
+    switch (status) {
       case BleDeviceStatus.disconnected:
         return Colors.grey;
-      case BleDeviceStatus.connecting:
-        return Colors.white;
-      case BleDeviceStatus.connected:
-        return Colors.white;
       case BleDeviceStatus.precheckFailed:
         return Colors.redAccent;
       case BleDeviceStatus.ready:
         return Colors.greenAccent;
+      default:
+        return Colors.white;
     }
   }
 
@@ -456,7 +459,8 @@ class _DashboardState extends State<Dashboard> {
                         builder: (context, status, child) {
                           final bandConnected =
                               status == BleDeviceStatus.connected ||
-                              status == BleDeviceStatus.ready;
+                              status == BleDeviceStatus.ready ||
+                              status == BleDeviceStatus.precheckPassed;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -465,7 +469,7 @@ class _DashboardState extends State<Dashboard> {
                                   Text(
                                     getBandConnectionStatus(),
                                     style: TextStyle(
-                                      color: getBandStatusColor(),
+                                      color: getStatusColor(status),
                                       // getStatusColor(bpm),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -675,7 +679,7 @@ class _DashboardState extends State<Dashboard> {
                                   Text(
                                     getCarConnectionStatus(),
                                     style: TextStyle(
-                                      color: getBandStatusColor(),
+                                      color: getStatusColor(status),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                     ),

@@ -139,6 +139,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       }
 
       traceLog("Predrive Check Passed");
+      CarBleService.instance.sendPredriveCheckPassed();
 
       // 3. start trip in database
       final updatedTrip = await TripService().patchTrip(

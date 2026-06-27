@@ -68,7 +68,7 @@ void showHealthAlertDialog(String conditionName, VitalReadings reading) {
           throw Exception("Couldn't trigger Health Abnormal Alert");
         }
 
-        CarBleService.instance.severeCaseOccurred();
+        CarBleService.instance.sendSevereCaseOccurred();
         traceLog("Informed car to auto disable itself");
         // End trips Calls Create Health Readings which need the trip to be completed/canceled first
         // therefore must update trip status first

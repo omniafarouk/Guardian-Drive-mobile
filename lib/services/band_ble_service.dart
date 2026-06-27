@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/band_service.dart';
+import 'package:guardian_drive_mobile/services/ble_helper.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/enums.dart';
 
 class BandBleService {
   // SINGLETON
+  
   static final BandBleService instance = BandBleService._internal();
   BandBleService._internal();
 
@@ -66,6 +70,8 @@ class BandBleService {
   int _lastSavedBatt = -1;
   DateTime? _lastBattWrite;
 
+  VoidCallback? _carWaitListener;
+
   // Only update batter once per meaningful battery change or once every 5 mins
   void _maybeSaveBattery(int newBatt) {
     final now = DateTime.now();
@@ -86,8 +92,16 @@ class BandBleService {
     }
   }
 
+  Timer? _scanTimeout;
   // starts scanning
   Future<void> scanAndConnect() async {
+    final error = await BleHelper.checkBle(_ble);
+
+    if (error != null) {
+      status = BleDeviceStatus.disconnected;
+      messagesController.add(error);
+      return;
+    }
     status = BleDeviceStatus.connecting;
     bandDeviceId ??= await StorageService.getDeviceId();
     if (bandDeviceId == null) {
@@ -97,9 +111,10 @@ class BandBleService {
     }
     print("[BAND] scan and connect function called");
     _scanSubscription?.cancel();
-    final scanTimeout = Timer(const Duration(seconds: 10), () {
+    _scanTimeout?.cancel();
+    final scanTimeout = Timer(const Duration(seconds: 30), () {
       print("Scan timed out");
-
+      _connectionSubscription?.cancel();
       _scanSubscription?.cancel();
 
       status = BleDeviceStatus.disconnected;
@@ -123,11 +138,8 @@ class BandBleService {
           if (device.name == "ESP32_BAND") {
             print("FOUNDD $device.name");
             scanTimeout.cancel();
-
             _deviceId = device.id;
-
             _scanSubscription?.cancel();
-
             connect(device.id); // connects to esp32
           }
         });
@@ -175,7 +187,12 @@ class BandBleService {
               print("CONNECTION STATE: DISCONNECTED");
               // isConnected = false;
               BandService.patchBand(bandDeviceId!, isConnected: false);
-
+              if (_carWaitListener != null) {
+                CarBleService.instance.statusNotifier.removeListener(
+                  _carWaitListener!,
+                );
+                _carWaitListener = null;
+              }
               _reconnect();
             }
           },
@@ -186,6 +203,21 @@ class BandBleService {
             _reconnect();
           },
         );
+  }
+
+  void _waitForCarThenSendR() {
+    _carWaitListener = () async {
+      final carStatus = CarBleService.instance.status;
+      if (carStatus == BleDeviceStatus.ready) {
+        CarBleService.instance.statusNotifier.removeListener(_carWaitListener!);
+        _carWaitListener = null;
+        status = BleDeviceStatus.ready;
+        await sendCommand("R");
+        print("Car connected — sent R to band");
+        _readyForReadings = true;
+      }
+    };
+    CarBleService.instance.statusNotifier.addListener(_carWaitListener!);
   }
 
   StringBuffer _buffer = StringBuffer();
@@ -209,16 +241,31 @@ class BandBleService {
         if (message == "P") {
           print("Band precheck passed");
           _precheckPassed = true;
-          status = BleDeviceStatus.ready;
-          await sendCommand("R");
-          print("Mobile ready, sent R");
+          status = BleDeviceStatus.precheckPassed;
+          // status = BleDeviceStatus.ready;
+          // print("Mobile ready, waiting for car...");
+          _readyForReadings = false;
 
-          _readyForReadings = true;
+          if (CarBleService.instance.status == BleDeviceStatus.ready) {
+            status = BleDeviceStatus.ready;
+            await sendCommand("R");
+            print("Car already connected, sent R");
+            _readyForReadings = true;
+          } else {
+            // ✅ car not ready yet — wait for it
+            print("Car not connected yet, waiting...");
+            _waitForCarThenSendR();
+          }
+          // await sendCommand("R");
+          // print("Mobile ready, sent R");
+          // _readyForReadings = true;
         } else if (message == "F") {
           print("Band precheck FAILED");
           _precheckPassed = false;
           status = BleDeviceStatus.precheckFailed;
-          messagesController.add("Band Connection failed, please contact your fleet manager.");
+          messagesController.add(
+            "Band Connection failed, please contact your fleet manager.",
+          );
         }
         return;
       }
@@ -347,5 +394,9 @@ class BandBleService {
     _scanSubscription?.cancel();
     _connectionSubscription?.cancel();
     _notifySubscription?.cancel();
+    if (_carWaitListener != null) {
+      CarBleService.instance.statusNotifier.removeListener(_carWaitListener!);
+      _carWaitListener = null;
+    }
   }
 }
