@@ -47,6 +47,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final AppLinks appLinks = AppLinks();
   StreamSubscription? _sub;
+  bool _bandAdjustDialogVisible = false;
 
   @override
   void initState() {
@@ -54,11 +55,45 @@ class _MyAppState extends State<MyApp> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       initDeepLinks();
+      BandBleService.instance.needsBandAdjustment.addListener(() {
+        final needs = BandBleService.instance.needsBandAdjustment.value;
+        final context = navigatorKey.currentContext;
+        if (context == null) return;
+
+        if (needs && !_bandAdjustDialogVisible) {
+          _bandAdjustDialogVisible = true;
+          showDialog(
+            context: context,
+            barrierDismissible: false, // tapping outside the dialog does nothing
+            builder: (_) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text('Adjust Your Band'),
+                ],
+              ),
+              content: Text(
+                'Your band is not properly worn. Please adjust it to continue accurate health monitoring.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Got it'),
+                ),
+              ],
+            ),
+          ).then((_) => _bandAdjustDialogVisible = false);
+        } else if (!needs && _bandAdjustDialogVisible) {
+          _bandAdjustDialogVisible = false;
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      });
     });
   }
 
   Future<void> initDeepLinks() async {
-    /// =========================
+    /// =========================mai
     /// HANDLE COLD START LINK
     /// =========================
     final uri = await appLinks.getInitialLink();
@@ -122,6 +157,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _sub?.cancel();
+    BandBleService.instance.needsBandAdjustment.removeListener(() {});
     super.dispose();
   }
 

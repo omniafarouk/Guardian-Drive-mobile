@@ -12,7 +12,7 @@ import '../models/enums.dart';
 
 class BandBleService {
   // SINGLETON
-  
+
   static final BandBleService instance = BandBleService._internal();
   BandBleService._internal();
 
@@ -65,6 +65,10 @@ class BandBleService {
   final ValueNotifier<double> tempNotifier = ValueNotifier(0.0);
   final ValueNotifier<int> battNotifier = ValueNotifier(0);
 
+  final ValueNotifier<bool> needsBandAdjustment = ValueNotifier(
+    false,
+  ); // to handle stacking of dialogs
+
   int? bandDeviceId;
 
   int _lastSavedBatt = -1;
@@ -112,7 +116,7 @@ class BandBleService {
     print("[BAND] scan and connect function called");
     _scanSubscription?.cancel();
     _scanTimeout?.cancel();
-    final scanTimeout = Timer(const Duration(seconds: 30), () {
+    _scanTimeout = Timer(const Duration(seconds: 30), () {
       print("Scan timed out");
       _connectionSubscription?.cancel();
       _scanSubscription?.cancel();
@@ -137,7 +141,7 @@ class BandBleService {
 
           if (device.name == "ESP32_BAND") {
             print("FOUNDD $device.name");
-            scanTimeout.cancel();
+            _scanTimeout?.cancel();
             _deviceId = device.id;
             _scanSubscription?.cancel();
             connect(device.id); // connects to esp32
@@ -159,7 +163,6 @@ class BandBleService {
                 DeviceConnectionState.connected) {
               status = BleDeviceStatus.connected;
               print("CONNECTION SUCCESSFUL");
-              // isConnected = true;
               _readyForReadings = false;
               _reconnectAttempts = 0;
               BandService.patchBand(bandDeviceId!, isConnected: true);
@@ -185,7 +188,7 @@ class BandBleService {
                 DeviceConnectionState.disconnected) {
               status = BleDeviceStatus.disconnected;
               print("CONNECTION STATE: DISCONNECTED");
-              // isConnected = false;
+
               BandService.patchBand(bandDeviceId!, isConnected: false);
               if (_carWaitListener != null) {
                 CarBleService.instance.statusNotifier.removeListener(
@@ -242,9 +245,8 @@ class BandBleService {
           print("Band precheck passed");
           _precheckPassed = true;
           status = BleDeviceStatus.precheckPassed;
-          // status = BleDeviceStatus.ready;
-          // print("Mobile ready, waiting for car...");
-          _readyForReadings = false;
+          _readyForReadings =
+              false; // not ready for readings until the car is connected too
 
           if (CarBleService.instance.status == BleDeviceStatus.ready) {
             status = BleDeviceStatus.ready;
@@ -271,7 +273,8 @@ class BandBleService {
       }
       if (message == "AD") {
         print("PLEASE ADJUST YOUR BAND");
-        messagesController.add("Please Adjust Your Band.");
+        // messagesController.add("Please Adjust Your Band.");
+        needsBandAdjustment.value = true;
         return;
       }
       if (message == "ET") {
@@ -286,6 +289,7 @@ class BandBleService {
       }
       // STARTS READING
       _buffer.write(message);
+      needsBandAdjustment.value = false; // not sure about its place yet
 
       // wait until we have at least one full message
       String text = _buffer.toString();
