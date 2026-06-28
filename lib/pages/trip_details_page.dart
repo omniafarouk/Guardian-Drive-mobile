@@ -367,24 +367,42 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                       : canStartTrip
                       ? ElevatedButton(
                           onPressed: () {
-                            if (CarBleService.instance.status !=
-                                    BleDeviceStatus.ready ||
-                                BandBleService.instance.status !=
-                                    BleDeviceStatus.ready) {
+                            traceLog(
+                              "car status",
+                              CarBleService.instance.status,
+                            );
+                            traceLog(
+                              "band status",
+                              BandBleService.instance.status,
+                            );
+                            traceLog(
+                              "car is ready",
+                              CarBleService.instance.status.name ==
+                                  BleDeviceStatus.ready.name,
+                            );
+                            traceLog(
+                              "band is ready",
+                              BandBleService.instance.status.name ==
+                                  BleDeviceStatus.ready.name,
+                            );
+                            if (CarBleService.instance.status.name !=
+                                    BleDeviceStatus.ready.name &&
+                                BandBleService.instance.status.name !=
+                                    BleDeviceStatus.ready.name) {
                               _showNotConnectedDialog(
                                 "Please connect both the band and vehicle first",
                               );
                               return; // important — stop here
                             }
-                            if (BandBleService.instance.status !=
-                                BleDeviceStatus.ready) {
+                            if (BandBleService.instance.status.name !=
+                                BleDeviceStatus.ready.name) {
                               _showNotConnectedDialog(
                                 "Please connect the driver band first",
                               );
                               return;
                             }
-                            if (CarBleService.instance.status !=
-                                BleDeviceStatus.ready) {
+                            if (CarBleService.instance.status.name !=
+                                BleDeviceStatus.ready.name) {
                               _showNotConnectedDialog(
                                 "Please connect the vehicle first",
                               );

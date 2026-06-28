@@ -1,8 +1,8 @@
 // services/breach_trigger_coordinator.dart
+import 'package:guardian_drive_mobile/models/alert_tier.dart';
 import 'package:guardian_drive_mobile/models/condition_breach_data.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/alert_tier.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_pattern_matcher.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/driver_baseline_with_noise_model.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
