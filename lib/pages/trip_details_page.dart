@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_service.dart';
 import 'package:guardian_drive_mobile/services/medical_info_service.dart';
@@ -15,7 +14,7 @@ import '../widgets/map.dart' as MapDrawer;
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import '../services/car_ble_service.dart';
 import '../services/band_ble_service.dart';
-import '../models//enums.dart';
+import '../models/enums.dart';
 
 String _formatTripDate(DateTime date) {
   return DateFormat("MMM d, yyyy 'at' h:mm a").format(date);
@@ -47,10 +46,15 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
   bool tripIsLoading = true;
   bool carIsLoading = true;
   bool buttonActionLoading = false;
+  bool _predriveCheckLoading = false;
+  bool _loaded = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
+    if (_loaded) return;
+    _loaded = true;
 
     final tripId = ModalRoute.of(context)!.settings.arguments as int;
     _fetchTrip(tripId);
@@ -129,12 +133,19 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         minTemp: 36.0,
         maxTemp: 37.5,
       );
-
+      _showPredriveCheckDialog();
       // 2. Start (predrive health check)
-      bool checkPassed = await PreDriveCheckService.startPreDriveCheck();
+      bool checkPassed = await PreDriveCheckService.startPreDriveCheck(
+        thresholds: thresholds,
+      );
 
+      if (mounted) Navigator.pop(context);
       if (!checkPassed) {
         traceLog(' COULDN\'T START TRIP!!! ');
+        _showDialog(
+          "Predrive check failure",
+          "Can't start trip, predrive health check failed.",
+        );
         return;
       }
 
@@ -182,11 +193,44 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
     }
   }
 
-  void _showNotConnectedDialog(String message) {
+  void _showPredriveCheckDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // user can't dismiss it
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: Color.fromARGB(255, 1, 21, 51),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 20),
+            Text(
+              'Pre-drive Check In Progress',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Please wait a few seconds…',
+              style: TextStyle(color: Color(0xFF979797), fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDialog(String title, String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: Center(child: Text('Connection Required')),
+        title: Center(child: Text(title)),
         content: Text(
           message,
           style: TextStyle(fontSize: 16),
@@ -367,43 +411,40 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                       : canStartTrip
                       ? ElevatedButton(
                           onPressed: () {
-                            traceLog(
-                              "car status",
-                              CarBleService.instance.status,
-                            );
-                            traceLog(
-                              "band status",
-                              BandBleService.instance.status,
-                            );
-                            traceLog(
-                              "car is ready",
-                              CarBleService.instance.status.name ==
-                                  BleDeviceStatus.ready.name,
-                            );
-                            traceLog(
-                              "band is ready",
-                              BandBleService.instance.status.name ==
-                                  BleDeviceStatus.ready.name,
-                            );
-                            if (CarBleService.instance.status.name !=
-                                    BleDeviceStatus.ready.name &&
-                                BandBleService.instance.status.name !=
-                                    BleDeviceStatus.ready.name) {
-                              _showNotConnectedDialog(
+                            // can't start more than one trip
+                            if (TripService().activeTripId != null) {
+                              _showDialog(
+                                "Can't Start Trip",
+                                "You already have an ongoing trip",
+                              );
+                              return;
+                            }
+                            final carReady =
+                                CarBleService.instance.status ==
+                                BleDeviceStatus.ready;
+                            final bandReady =
+                                BandBleService.instance.status ==
+                                BleDeviceStatus.ready;
+                            print("CAR STATUS $carReady");
+                            print("BAND STATUS $bandReady");
+
+                            if (!carReady && !bandReady) {
+                              _showDialog(
+                                "Connection Problem",
                                 "Please connect both the band and vehicle first",
                               );
                               return; // important — stop here
                             }
-                            if (BandBleService.instance.status.name !=
-                                BleDeviceStatus.ready.name) {
-                              _showNotConnectedDialog(
+                            if (!bandReady) {
+                              _showDialog(
+                                "Band Connection",
                                 "Please connect the driver band first",
                               );
                               return;
                             }
-                            if (CarBleService.instance.status.name !=
-                                BleDeviceStatus.ready.name) {
-                              _showNotConnectedDialog(
+                            if (!carReady) {
+                              _showDialog(
+                                "Car Connection",
                                 "Please connect the vehicle first",
                               );
                               return;

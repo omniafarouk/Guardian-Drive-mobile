@@ -59,9 +59,10 @@ class PreDriveCheckService {
     await sub.cancel();
   }
 
-  static Future<bool> startPreDriveCheck({bool testMode = false}) async {
-    final thresholds = await MedicalInfoService().getDriverThresholds();
-
+  static Future<bool> startPreDriveCheck({
+    required DriverHealthThresholds thresholds,
+    bool testMode = false,
+  }) async {
     final preDriveService = PreDriveCheckService(thresholds: thresholds);
 
     await preDriveService.run(
