@@ -1,1 +1,8 @@
-enum BleDeviceStatus { disconnected, connecting, connected, precheckFailed, precheckPassed, ready }
+enum BleDeviceStatus {
+  disconnected,
+  connecting,
+  connected,
+  precheckFailed,
+  precheckPassed,
+  ready,
+}

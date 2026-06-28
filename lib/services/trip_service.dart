@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/device_auth_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';
 import 'package:guardian_drive_mobile/services/user_service.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/hive_store.dart';
@@ -241,10 +242,33 @@ class TripService {
     final body = jsonEncode({'status': status.name});
     final uri = Uri.parse('$baseUrl/api/trips/$tripId');
     print('PATCH URL: $uri');
-    print('PATCH BODY: $body'); // what are we sending?
+    print('PATCH BODY: $body');
     final response = await http.patch(
       uri,
       headers: await api_service.ApiClient.headers(),
+      body: body,
+    );
+    traceLog("STATUS CODE: ${response.statusCode}");
+    traceLog("BODY: ${response.body}");
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return Trip.fromJson(data['trip']);
+    } else {
+      final error = json.decode(response.body);
+      traceLog("failed to update trip", {error['error']});
+      traceLog("failed to update trip", {error});
+      throw Exception('Failed to update trip');
+    }
+  }
+
+  Future<Trip> patchTripSystem(int tripId, TripStatus status) async {
+    final body = jsonEncode({'status': status.name});
+    final uri = Uri.parse('$baseUrl/api/trips/$tripId/system');
+    print('PATCH URL: $uri');
+    print('PATCH BODY: $body');
+    final response = await http.patch(
+      uri,
+      headers: DeviceAuth.systemAuthHeader(),
       body: body,
     );
     traceLog("STATUS CODE: ${response.statusCode}");

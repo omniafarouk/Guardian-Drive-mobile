@@ -123,11 +123,12 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
           .getDriverThresholds();
 
       traceLog("Fetched Threhsolds For predrive checking", thresholds);
-      _showPredriveCheckDialog();
+      // _showPredriveCheckDialog();
       // 2. Start (predrive health check)
-      bool checkPassed = await PreDriveCheckService.startPreDriveCheck(
-        thresholds,
-      );
+      if (!mounted) return;
+      bool checkPassed = await PreDriveCheckService(
+        thresholds: thresholds,
+      ).startPreDriveCheck(context);
 
       if (mounted) Navigator.pop(context);
       if (!checkPassed) {
@@ -162,7 +163,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       await TripService().startTripTracking(
         tripId: trip!.tripId,
         thresholds: thresholds,
-        testMode: true,
+        // testMode: true,
       );
       print('Trip started — watch console for breach traces');
 
@@ -181,39 +182,6 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         buttonActionLoading = false;
       });
     }
-  }
-
-  void _showPredriveCheckDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // user can't dismiss it
-      builder: (BuildContext context) => AlertDialog(
-        backgroundColor: Color.fromARGB(255, 1, 21, 51),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: Colors.white),
-            SizedBox(height: 20),
-            Text(
-              'Pre-drive Check In Progress',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Please wait a few seconds…',
-              style: TextStyle(color: Color(0xFF979797), fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _showDialog(String title, String message) {

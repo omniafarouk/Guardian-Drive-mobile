@@ -14,12 +14,16 @@ class ThresholdChecker {
   List<ConditionBreach> check(VitalReadings reading) {
     final breaches = <ConditionBreach>[];
 
+    // the warning buffer is the data noise that may come from the database
+    // so the critical case of just equals to the critical data (min/max) would trigger a warning
+    // past these data would trigger an alert
+
     _checkBound(
       value: reading.heartRate,
       min: thresholds.minHeartRate,
       max: thresholds.maxHeartRate,
       avg: thresholds.avgHeartRate,
-      warningBuffer: 5,
+      warningBuffer: 1.5,
       lowType: ConditionType.LOW_HEART_RATE,
       highType: ConditionType.HIGH_HEART_RATE,
       breaches: breaches,
@@ -27,7 +31,7 @@ class ThresholdChecker {
 
     _checkBound(
       value: reading.spo2,
-      min: thresholds.minSpo2 - 1,
+      min: thresholds.minSpo2 - 0.4,
       max: thresholds.maxSpo2,
       avg: thresholds.avgSpo2,
       warningBuffer: 0,
@@ -41,7 +45,7 @@ class ThresholdChecker {
       min: thresholds.minTemp,
       max: thresholds.maxTemp,
       avg: thresholds.avgTemp,
-      warningBuffer: 1,
+      warningBuffer: 0.05,
       lowType: ConditionType.LOW_TEMP,
       highType: ConditionType.HIGH_TEMP,
       breaches: breaches,
