@@ -5,9 +5,11 @@ import 'package:guardian_drive_mobile/main.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/threshold_checker_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
+
+// import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 class PreDriveCheckService {
   final DriverHealthThresholds thresholds;

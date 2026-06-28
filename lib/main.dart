@@ -14,9 +14,11 @@ import 'package:guardian_drive_mobile/pages/trip_list_page.dart';
 import 'package:guardian_drive_mobile/pages/alert_detail_page.dart';
 import 'package:guardian_drive_mobile/pages/reset_pass.dart';
 import 'package:guardian_drive_mobile/services/auth_service.dart';
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/utils/app_messanger.dart';
+
+// import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -64,7 +66,8 @@ class _MyAppState extends State<MyApp> {
           _bandAdjustDialogVisible = true;
           showDialog(
             context: context,
-            barrierDismissible: false, // tapping outside the dialog does nothing
+            barrierDismissible:
+                false, // tapping outside the dialog does nothing
             builder: (_) => AlertDialog(
               title: Row(
                 children: [

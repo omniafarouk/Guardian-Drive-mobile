@@ -2,6 +2,13 @@
 
 A new Flutter project.
 
+# Change the Following files to change between dataset readings VS band actual readings
+main.dart
+predrive_check.dart
+trip_service.dart
+trip_details_page.dart
+dashboard.dart
+
 # Normal Person Readings :
 
 thresholds = DriverHealthThresholds(
