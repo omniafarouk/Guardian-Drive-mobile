@@ -16,6 +16,8 @@ import '../services/car_ble_service.dart';
 import '../services/band_ble_service.dart';
 import '../models/enums.dart';
 
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
+
 String _formatTripDate(DateTime date) {
   return DateFormat("MMM d, yyyy 'at' h:mm a").format(date);
 }

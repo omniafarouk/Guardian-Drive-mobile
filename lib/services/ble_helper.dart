@@ -5,12 +5,7 @@ class BleHelper {
   BleHelper._();
 
   static Future<String?> checkBle(FlutterReactiveBle ble) async {
-    final bleStatus = await ble.statusStream.first;
-
-    if (bleStatus != BleStatus.ready) {
-      return "Bluetooth is turned off. Please enable Bluetooth.";
-    }
-
+    // 1. Request permissions FIRST
     final scanPermission = await Permission.bluetoothScan.request();
     final connectPermission = await Permission.bluetoothConnect.request();
 
@@ -18,9 +13,15 @@ class BleHelper {
       if (scanPermission.isPermanentlyDenied ||
           connectPermission.isPermanentlyDenied) {
         await openAppSettings();
+        return null;
       }
-
       return "Bluetooth permission is required.";
+    }
+
+    // 2. NOW check BLE status
+    final bleStatus = await ble.statusStream.first;
+    if (bleStatus != BleStatus.ready) {
+      return "Bluetooth is turned off. Please enable Bluetooth.";
     }
 
     return null;

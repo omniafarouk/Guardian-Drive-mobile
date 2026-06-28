@@ -163,7 +163,14 @@ class BandBleService {
                 DeviceConnectionState.connected) {
               status = BleDeviceStatus.connected;
               print("CONNECTION SUCCESSFUL");
-              _readyForReadings = false;
+              // _readyForReadings = false;
+              if (!_precheckPassed) {
+                _readyForReadings = false;
+              } else {
+                // reconnect: band won't re-send "P", skip straight to ready
+                _readyForReadings = true;
+                status = BleDeviceStatus.ready;
+              }
               _reconnectAttempts = 0;
               BandService.patchBand(bandDeviceId!, isConnected: true);
               print("# OF AT ATTEMPTS RESETEDDDD $_reconnectAttempts");
