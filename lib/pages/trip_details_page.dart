@@ -136,7 +136,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       _showPredriveCheckDialog();
       // 2. Start (predrive health check)
       bool checkPassed = await PreDriveCheckService.startPreDriveCheck(
-        thresholds: thresholds,
+        thresholds,
       );
 
       if (mounted) Navigator.pop(context);

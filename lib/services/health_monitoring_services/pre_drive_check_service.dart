@@ -5,7 +5,6 @@ import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/threshold_checker_service.dart';
-import 'package:guardian_drive_mobile/services/medical_info_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 
 class PreDriveCheckService {
@@ -59,10 +58,9 @@ class PreDriveCheckService {
     await sub.cancel();
   }
 
-  static Future<bool> startPreDriveCheck({
-    required DriverHealthThresholds thresholds,
-    bool testMode = false,
-  }) async {
+  static Future<bool> startPreDriveCheck(
+    DriverHealthThresholds thresholds,
+  ) async {
     final preDriveService = PreDriveCheckService(thresholds: thresholds);
 
     await preDriveService.run(

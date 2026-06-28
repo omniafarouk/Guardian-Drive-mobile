@@ -22,7 +22,7 @@ Stream<VitalReadings> mockVitalsStream() {
     return VitalReadings(
       heartRate: 80 + random.nextDouble() * 40,
       spo2: 91 + random.nextDouble() * 5,
-      temp: 35.5,
+      temp: 33.5,
       timestamp: DateTime.now(),
     );
   });
