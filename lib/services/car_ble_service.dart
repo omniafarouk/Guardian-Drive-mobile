@@ -50,7 +50,7 @@ class CarBleService {
 
   final StreamController<String> messagesController =
       StreamController.broadcast(); // crash events, status
-
+  Timer? _scanTimeout;
   Future<void> scanAndConnect() async {
     _allowReconnect = true;
     final error = await BleHelper.checkBle(_ble);
@@ -63,13 +63,15 @@ class CarBleService {
     status = BleDeviceStatus.connecting;
     print("[CAR] scan and connect function called");
     _scanSubscription?.cancel();
-    final scanTimeout = Timer(const Duration(seconds: 30), () {
+    _scanTimeout?.cancel();
+    _scanTimeout = Timer(const Duration(seconds: 30), () {
       print("Scan timed out");
+      _connectionSubscription?.cancel();
       _scanSubscription?.cancel();
 
       status = BleDeviceStatus.disconnected;
 
-      messagesController.add("Car not found for connection.");
+      messagesController.add("Car not found for connection, please try again.");
     });
     _scanSubscription = _ble
         .scanForDevices(
@@ -80,9 +82,9 @@ class CarBleService {
           print("found DEVICE ${device.name} - ${device.id}");
           // if (device.name == "ESP32_CAR") {
           print("FOUNDD $device.name");
+          _scanTimeout?.cancel();
           _deviceId = device.id;
           _scanSubscription?.cancel();
-          scanTimeout.cancel();
           _connect(device.id);
           // }
         });
@@ -131,8 +133,16 @@ class CarBleService {
           (state) async {
             if (state.connectionState == DeviceConnectionState.connected) {
               print("[CAR] Connected");
-              status = BleDeviceStatus.connected;
+              // status = BleDeviceStatus.connected;
               _reconnectAttempts = 0;
+              if (!_precheckPassed) {
+                status = BleDeviceStatus.connected; // wait for "P"
+              } else {
+                // reconnect — skip precheck, go straight to ready
+                status = BleDeviceStatus.ready;
+                print("Reconnection successful, skip straight to ready");
+              }
+
               // NOTE: no need for MTU neotiation here
               // (sent and received data through this service is very small)
 
@@ -222,12 +232,13 @@ class CarBleService {
       return;
     }
     if (_deviceId == null) return;
-
+    status = BleDeviceStatus.connecting;
     if (_reconnectAttempts >= maxReconnectAttempts) {
       print("[CAR] Reconnect timeout");
       messagesController.add(
         "Car Connection lost. Unable to reconnect, please try again.",
       );
+      status = BleDeviceStatus.disconnected;
       return;
     }
 

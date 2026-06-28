@@ -8,7 +8,6 @@ import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/models/enums.dart';
 import 'package:guardian_drive_mobile/pages/trip_details_page.dart';
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/band_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
@@ -30,6 +29,9 @@ import 'package:guardian_drive_mobile/models/trip_location.dart';
 import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
 import 'package:intl/intl.dart';
+
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+// import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 class Dashboard extends StatefulWidget {
   @override
@@ -569,17 +571,10 @@ class _DashboardState extends State<Dashboard> {
                                       ),
                                       Text(
                                         '$temp °C',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      Text(
-                                        'TEMP STATUS',
                                         style: TextStyle(
                                           color: getTempStatusColor(),
-                                          fontSize: 16,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 18,
                                         ),
                                       ),
                                     ],
@@ -616,17 +611,10 @@ class _DashboardState extends State<Dashboard> {
                                       ),
                                       Text(
                                         '$spO2 %',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Spo2 status',
                                         style: TextStyle(
                                           color: getSpOStatusColor(),
-                                          fontSize: 16,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 18,
                                         ),
                                       ),
                                     ],

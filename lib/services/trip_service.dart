@@ -18,6 +18,9 @@ import '../models/trips_response.dart';
 import 'package:http/http.dart' as http;
 import 'api_client_service.dart' as api_service;
 
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+// import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
+
 class TripService {
   static const baseUrl = api_service.ApiClient.baseUrl;
   int? activeTripId;

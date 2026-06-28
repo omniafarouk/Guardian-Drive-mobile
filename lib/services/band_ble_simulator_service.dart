@@ -8,6 +8,8 @@ import 'package:guardian_drive_mobile/services/ble_helper.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
 import '../models/enums.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert' show LineSplitter;
 
 class BandBleService {
   // SINGLETON
@@ -74,6 +76,53 @@ class BandBleService {
   DateTime? _lastBattWrite;
 
   VoidCallback? _carWaitListener;
+
+  // ── CSV config ────────────────────────────────────────────────────────────
+  String? _csvSubject = 'S01';
+  String _csvScenario = 'fatigue'; // 'normal', 'fatigue', or 'all'
+  List<_CsvRow> _csvRows = [];
+  int _csvCursor = 0;
+  bool _csvLoaded = false;
+
+  Future<void> _loadCsvIfNeeded() async {
+    if (_csvLoaded) return;
+    final raw = await rootBundle.loadString('assets/fatigue.csv');
+    final lines = const LineSplitter().convert(raw);
+    if (lines.isEmpty) return;
+
+    final headers = lines.first.split(',').map((h) => h.trim()).toList();
+    final iTimestamp = headers.indexOf('timestamp_s');
+    final iSubject = headers.indexOf('subject_id');
+    final iBpm = headers.indexOf('bpm');
+    final iSpo2 = headers.indexOf('spo2');
+    final iTemp = headers.indexOf('skin_temp_c');
+    final iLabel = headers.indexOf('label');
+
+    for (final line in lines.skip(1)) {
+      if (line.trim().isEmpty) continue;
+      final cols = line.split(',');
+      if (cols.length <= iLabel) continue;
+      final rowSubject = cols[iSubject].trim();
+      final rowLabel = cols[iLabel].trim();
+      if (_csvSubject != null && rowSubject != _csvSubject) continue;
+      if (_csvScenario != 'all' && rowLabel != _csvScenario) continue;
+      _csvRows.add(
+        _CsvRow(
+          bpm: double.tryParse(cols[iBpm].trim()) ?? 0,
+          spo2: double.tryParse(cols[iSpo2].trim()) ?? 0,
+          temp: double.tryParse(cols[iTemp].trim()) ?? 0,
+        ),
+      );
+    }
+    _csvLoaded = true;
+  }
+
+  _CsvRow? _getNextCsvRow() {
+    if (_csvRows.isEmpty) return null;
+    final row = _csvRows[_csvCursor % _csvRows.length];
+    _csvCursor++;
+    return row;
+  }
 
   // Only update batter once per meaningful battery change or once every 5 mins
   void _maybeSaveBattery(int newBatt) {
@@ -168,6 +217,7 @@ class BandBleService {
               } else {
                 // reconnect: band won't re-send "P", skip straight to ready
                 _readyForReadings = true;
+                _csvLoaded = true;
                 status = BleDeviceStatus.ready;
                 print("Reconnection successful, skip straight to ready");
               }
@@ -225,6 +275,7 @@ class BandBleService {
         await sendCommand("R");
         print("Car connected — sent R to band");
         _readyForReadings = true;
+        await _loadCsvIfNeeded();
       }
     };
     CarBleService.instance.statusNotifier.addListener(_carWaitListener!);
@@ -260,6 +311,7 @@ class BandBleService {
             await sendCommand("R");
             print("Car already connected, sent R");
             _readyForReadings = true;
+            await _loadCsvIfNeeded();
           } else {
             // ✅ car not ready yet — wait for it
             print("Car not connected yet, waiting...");
@@ -341,15 +393,20 @@ class BandBleService {
             return;
           }
           // telemetryController.add(data.toString());
-          telemetryController.add(
-            VitalReadings(
-              heartRate: bpm.toDouble(),
-              spo2: spo2.toDouble(),
-              temp: temp.toDouble(),
-              timestamp: DateTime.now(),
-            ),
-          );
-
+          final csvRow = _getNextCsvRow();
+          if (csvRow != null) {
+            bpmNotifier.value = csvRow.bpm;
+            spO2Notifier.value = csvRow.spo2;
+            tempNotifier.value = csvRow.temp;
+            telemetryController.add(
+              VitalReadings(
+                heartRate: csvRow.bpm,
+                spo2: csvRow.spo2,
+                temp: csvRow.temp,
+                timestamp: DateTime.now(),
+              ),
+            );
+          }
           print("BATT: ${data['BATT']}");
           print("SPO2: ${data['spO2']}");
           print("BPM: ${data['bpm']}");
@@ -390,7 +447,6 @@ class BandBleService {
       messagesController.add(
         "Band Connection lost. Unable to reconnect. Please check the band and try again.",
       );
-      status = BleDeviceStatus.disconnected;
       return;
     }
     _reconnectAttempts++;
@@ -411,4 +467,11 @@ class BandBleService {
       _carWaitListener = null;
     }
   }
+}
+
+class _CsvRow {
+  final double bpm;
+  final double spo2;
+  final double temp;
+  const _CsvRow({required this.bpm, required this.spo2, required this.temp});
 }
