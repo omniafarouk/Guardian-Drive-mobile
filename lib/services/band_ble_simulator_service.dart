@@ -81,7 +81,7 @@ class BandBleService {
   // battNotifier is NOT touched here — it comes from the real band only.
   void _startCsvPlayback() {
     _csvTimer?.cancel();
-    _csvTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _csvTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       final row = _getNextCsvRow();
       if (row == null) return;
 
@@ -115,6 +115,8 @@ class BandBleService {
     final iSpo2 = headers.indexOf('spo2');
     final iTemp = headers.indexOf('skin_temp_c');
     final iLabel = headers.indexOf('label');
+
+    traceLog("label: $iLabel, subject: $iSubject");
 
     for (final line in lines.skip(1)) {
       if (line.trim().isEmpty) continue;

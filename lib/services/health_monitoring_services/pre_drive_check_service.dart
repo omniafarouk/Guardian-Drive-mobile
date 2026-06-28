@@ -5,6 +5,7 @@ import 'package:guardian_drive_mobile/main.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/threshold_checker_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 
@@ -70,7 +71,7 @@ class PreDriveCheckService {
     return result;
   }
 
-  Future<bool> startPreDriveCheck(BuildContext context) async {
+  Future<void> startPreDriveCheck(BuildContext context) async {
     final preDriveService = PreDriveCheckService(thresholds: thresholds);
 
     for (int attempt = 1; attempt <= _maxAttempts; attempt++) {
@@ -78,7 +79,7 @@ class PreDriveCheckService {
 
       // ✅ Always use navigatorKey for showing dialogs in async context
       final showCtx = navigatorKey.currentContext;
-      if (showCtx == null || !showCtx.mounted) return false;
+      if (showCtx == null || !showCtx.mounted) return;
       _showPredriveCheckDialog(showCtx, attempt);
 
       final passed = await preDriveService.run(
@@ -88,13 +89,19 @@ class PreDriveCheckService {
       // ✅ Fresh context to close the checking dialog
       final closeCtx = navigatorKey.currentContext;
       if (closeCtx != null) {
-        if (!showCtx.mounted) return false;
+        if (!showCtx.mounted) return;
         Navigator.of(closeCtx, rootNavigator: true).pop();
       }
 
       if (passed) {
         traceLog('PreDrive: passed on attempt $attempt', '');
-        return true;
+        bool carInformed = await CarBleService.instance
+            .sendPredriveCheckPassed();
+
+        if (!carInformed) {
+          throw Exception("Car connection Failed");
+        }
+        return;
       }
 
       traceLog('PreDrive: attempt $attempt timed out', '');
@@ -103,7 +110,7 @@ class PreDriveCheckService {
         // ✅ Fresh context for waiting dialog
         final waitCtx = navigatorKey.currentContext;
         if (waitCtx != null) {
-          if (!waitCtx.mounted) return false;
+          if (!waitCtx.mounted) return;
           await _showWaitingDialog(waitCtx, attempt);
         }
 
@@ -112,7 +119,7 @@ class PreDriveCheckService {
     }
 
     traceLog('PreDrive: all $_maxAttempts attempts failed', '');
-    return false;
+    throw Exception("predrive health check failed");
   }
 
   void _showPredriveCheckDialog(BuildContext context, int attempt) {

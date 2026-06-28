@@ -27,9 +27,9 @@ import 'package:guardian_drive_mobile/utils/trace_log.dart';
 class TriggerEvaluation {
   final AlertTier? tier; // null = nothing happened this cycle
   final String? conditionName;
-  final List<ConditionBreach> breaches;
+  final List<ConditionBreach>? breaches;
 
-  TriggerEvaluation({this.tier, this.conditionName, required this.breaches});
+  TriggerEvaluation({this.tier, this.conditionName, this.breaches});
 
   factory TriggerEvaluation.none() =>
       TriggerEvaluation(tier: null, breaches: []);
@@ -52,7 +52,7 @@ class BreachTriggerCoordinator {
 
   /// null = no action has ever fired yet, so no cooldown exists.
   /// Only ever set inside Stage 3, the moment an alert actually triggers.
-  DateTime? _cooldownUntil;
+  DateTime? cooldownUntil;
 
   final DriverBaselineWithNoise _baselineWithNoise;
 
@@ -73,8 +73,8 @@ class BreachTriggerCoordinator {
     VitalReadings latestReading,
   ) {
     // ---- GLOBAL COOLDOWN GATE ----
-    if (_cooldownUntil != null && now.isBefore(_cooldownUntil!)) {
-      traceLog('Suppressed — cooldown active until', _cooldownUntil.toString());
+    if (cooldownUntil != null && now.isBefore(cooldownUntil!)) {
+      traceLog('Suppressed — cooldown active until', cooldownUntil.toString());
       return TriggerEvaluation.none();
     }
 
@@ -109,7 +109,7 @@ class BreachTriggerCoordinator {
     // ---- STAGE 2: classify warning vs alertTrigger ----
     // First try pattern matcher — identifies a known condition (fatigue, panic etc.)
     // If no pattern matched, fall back to severity-based classification.
-    final pattern = _classifyPattern(confirmedBreaches, latestReading);
+    final pattern = classifyPattern(latestReading);
 
     AlertTier? tier = pattern?.tier;
     String? conditionName = pattern?.conditionName;
@@ -143,8 +143,8 @@ class BreachTriggerCoordinator {
     // ---- STAGE 3: act, retire, start cooldown ----
     final triggeredBreaches = List<ConditionBreach>.from(confirmedBreaches);
     _confirmedActive.clear();
-    _cooldownUntil = now.add(cooldown);
-    traceLog('Cooldown until', _cooldownUntil.toString());
+    cooldownUntil = now.add(cooldown);
+    traceLog('Cooldown until', cooldownUntil.toString());
 
     return TriggerEvaluation(
       tier: tier,
@@ -157,45 +157,39 @@ class BreachTriggerCoordinator {
     _consecutiveCounts.clear();
     _confirmedActive.clear();
     // _alreadyTriggered.clear();
-    _cooldownUntil = null;
+    cooldownUntil = null;
   }
 
-  PatternMatch? _classifyPattern(
-    List<ConditionBreach> confirmedBreaches,
+  PatternMatch? classifyPattern(
+    // List<ConditionBreach> confirmedBreaches,
     VitalReadings latestReading, // pass the original reading in
   ) {
-    // Extract what breached for logging/debugging --->
-    //TODO : SHOULD BE DELETED WHEN ENSURED CORRECT
-    double? hrBreach, tempBreach, spo2Breach;
-    double? hrBaseline, tempBaseline, spo2Baseline;
+    // // Extract what breached for logging/debugging --->
+    // //TODO : SHOULD BE DELETED WHEN ENSURED CORRECT
+    // double? hrBreach, tempBreach, spo2Breach;
+    // double? hrBaseline, tempBaseline, spo2Baseline;
 
-    for (final breach in confirmedBreaches) {
-      if (breach.type == ConditionType.HIGH_HEART_RATE ||
-          breach.type == ConditionType.LOW_HEART_RATE) {
-        hrBreach = breach.value;
-        hrBaseline = breach.baselineBreached;
-      } else if (breach.type == ConditionType.HIGH_TEMP ||
-          breach.type == ConditionType.LOW_TEMP) {
-        tempBreach = breach.value;
-        tempBaseline = breach.baselineBreached;
-      } else if (breach.type == ConditionType.LOW_SPO2) {
-        spo2Breach = breach.value;
-        spo2Baseline = breach.baselineBreached;
-      }
-    }
+    // for (final breach in confirmedBreaches) {
+    //   if (breach.type == ConditionType.HIGH_HEART_RATE ||
+    //       breach.type == ConditionType.LOW_HEART_RATE) {
+    //     hrBreach = breach.value;
+    //     hrBaseline = breach.baselineBreached;
+    //   } else if (breach.type == ConditionType.HIGH_TEMP ||
+    //       breach.type == ConditionType.LOW_TEMP) {
+    //     tempBreach = breach.value;
+    //     tempBaseline = breach.baselineBreached;
+    //   } else if (breach.type == ConditionType.LOW_SPO2) {
+    //     spo2Breach = breach.value;
+    //     spo2Baseline = breach.baselineBreached;
+    //   }
+    // }
 
-    VitalReadings? confirmedBreachesReading = VitalReadings(
-      heartRate: hrBreach ?? 0,
-      spo2: spo2Breach ?? 0,
-      temp: tempBreach ?? 0,
-      timestamp: DateTime.now(),
-    );
-
-    traceLog(
-      'Raw reading vs confirmed breach values',
-      'Raw Readings Recently Received : ${latestReading.toString()},'
-          '\n Confirmed Readings from Breaches ${confirmedBreachesReading.toString()}',
-    );
+    // VitalReadings? confirmedBreachesReading = VitalReadings(
+    //   heartRate: hrBreach ?? 0,
+    //   spo2: spo2Breach ?? 0,
+    //   temp: tempBreach ?? 0,
+    //   timestamp: DateTime.now(),
+    // );
 
     // Build the comparison baseline:
     // - use the specific threshold that was crossed if that vital breached
@@ -210,7 +204,7 @@ class BreachTriggerCoordinator {
     ); // needs the raw reading, not just breaches
 
     if (matches.isEmpty) {
-      return null; // TODO: send Alert too with UNKNOWN CONDITION
+      return null;
     }
 
     final PatternMatch patternDetected = matches.first; // strongest match wins

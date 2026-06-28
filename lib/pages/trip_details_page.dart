@@ -128,22 +128,31 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       // _showPredriveCheckDialog();
       // 2. Start (predrive health check)
       if (!mounted) return;
-      bool checkPassed = await PreDriveCheckService(
-        thresholds: thresholds,
-      ).startPreDriveCheck(context);
 
-      if (mounted) Navigator.pop(context);
-      if (!checkPassed) {
+      try {
+        await PreDriveCheckService(
+          thresholds: thresholds,
+        ).startPreDriveCheck(context);
+      } catch (e) {
+        if (mounted) Navigator.pop(context);
+
         traceLog(' COULDN\'T START TRIP!!! ');
-        _showDialog(
-          "Predrive check failure",
-          "Can't start trip, predrive health check failed.",
-        );
+        _showDialog("Predrive check failure", e.toString());
         return;
       }
 
       traceLog("Predrive Check Passed");
-      CarBleService.instance.sendPredriveCheckPassed();
+
+      // if (CarBleService.instance.statusNotifier.value ==
+      //         BleDeviceStatus.disconnected ||
+      //     BandBleService.instance.statusNotifier.value ==
+      //         BleDeviceStatus.disconnected) {
+      //   _showDialog(
+      //     "Predrive check failure",
+      //     "Can't start trip, Car OR Band Connection failed.",
+      //   );
+      //   return;
+      // }
 
       // 3. start trip in database
       final updatedTrip = await TripService().patchTrip(
