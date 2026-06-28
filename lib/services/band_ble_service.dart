@@ -7,6 +7,7 @@ import 'package:guardian_drive_mobile/services/band_service.dart';
 import 'package:guardian_drive_mobile/services/ble_helper.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/enums.dart';
 
 class BandBleService {
@@ -162,15 +163,7 @@ class BandBleService {
                 DeviceConnectionState.connected) {
               status = BleDeviceStatus.connected;
               print("CONNECTION SUCCESSFUL");
-              // _readyForReadings = false;
-              if (!_precheckPassed) {
-                _readyForReadings = false;
-              } else {
-                // reconnect: band won't re-send "P", skip straight to ready
-                _readyForReadings = true;
-                status = BleDeviceStatus.ready;
-                print("Reconnection successful, skip straight to ready");
-              }
+              _readyForReadings = false;
               _reconnectAttempts = 0;
               BandService.patchBand(bandDeviceId!, isConnected: true);
               print("# OF AT ATTEMPTS RESETEDDDD $_reconnectAttempts");
@@ -390,7 +383,6 @@ class BandBleService {
       messagesController.add(
         "Band Connection lost. Unable to reconnect. Please check the band and try again.",
       );
-      status = BleDeviceStatus.disconnected;
       return;
     }
     _reconnectAttempts++;

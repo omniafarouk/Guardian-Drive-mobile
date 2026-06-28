@@ -30,8 +30,8 @@ import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
 import 'package:intl/intl.dart';
 
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
-// import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
+// import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 class Dashboard extends StatefulWidget {
   @override

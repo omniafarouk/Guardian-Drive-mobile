@@ -84,7 +84,34 @@ class BandBleService {
   int _csvCursor = 0;
   bool _csvLoaded = false;
 
+  Timer? _csvTimer;
+
+  // Call this after _readyForReadings = true (in both places)
+  void _startCsvPlayback() {
+    _csvTimer?.cancel();
+    _csvTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final row = _getNextCsvRow();
+      if (row == null) return;
+
+      bpmNotifier.value = row.bpm;
+      spO2Notifier.value = row.spo2;
+      tempNotifier.value = row.temp;
+
+      telemetryController.add(
+        VitalReadings(
+          heartRate: row.bpm,
+          spo2: row.spo2,
+          temp: row.temp,
+          timestamp: DateTime.now(),
+        ),
+      );
+
+      print("CSV BPM: ${row.bpm}, SPO2: ${row.spo2}, TEMP: ${row.temp}");
+    });
+  }
+
   Future<void> _loadCsvIfNeeded() async {
+    print("Loading csv ..");
     if (_csvLoaded) return;
     final raw = await rootBundle.loadString('assets/fatigue.csv');
     final lines = const LineSplitter().convert(raw);
@@ -99,6 +126,7 @@ class BandBleService {
     final iLabel = headers.indexOf('label');
 
     for (final line in lines.skip(1)) {
+      print("Line $line");
       if (line.trim().isEmpty) continue;
       final cols = line.split(',');
       if (cols.length <= iLabel) continue;
@@ -147,6 +175,14 @@ class BandBleService {
   Timer? _scanTimeout;
   // starts scanning
   Future<void> scanAndConnect() async {
+    // await _loadCsvIfNeeded();
+    // print("CSV ROWS COUNT: ${_csvRows.length}");
+    // if (_csvRows.isNotEmpty) {
+    //   print("FIRST ROW: bpm=${_csvRows[0].bpm}, spo2=${_csvRows[0].spo2}, temp=${_csvRows[0].temp}");
+    // } else {
+    //   print("CSV IS EMPTY — check asset path and column names");
+    // }
+    // return;
     final error = await BleHelper.checkBle(_ble);
 
     if (error != null) {
@@ -217,6 +253,7 @@ class BandBleService {
               } else {
                 // reconnect: band won't re-send "P", skip straight to ready
                 _readyForReadings = true;
+                _startCsvPlayback();
                 _csvLoaded = true;
                 status = BleDeviceStatus.ready;
                 print("Reconnection successful, skip straight to ready");
@@ -276,6 +313,7 @@ class BandBleService {
         print("Car connected — sent R to band");
         _readyForReadings = true;
         await _loadCsvIfNeeded();
+        _startCsvPlayback();
       }
     };
     CarBleService.instance.statusNotifier.addListener(_carWaitListener!);
@@ -312,6 +350,7 @@ class BandBleService {
             print("Car already connected, sent R");
             _readyForReadings = true;
             await _loadCsvIfNeeded();
+            _startCsvPlayback();
           } else {
             // ✅ car not ready yet — wait for it
             print("Car not connected yet, waiting...");
@@ -381,17 +420,17 @@ class BandBleService {
         try {
           final Map<String, dynamic> data = jsonDecode(jsonStr);
           // UPDATE NOTIFIERS ↓
-          bpmNotifier.value = (data['bpm'] ?? 0).toDouble();
-          battNotifier.value = (data['BATT'] ?? 0).toInt();
-          _maybeSaveBattery(battNotifier.value);
-          final bpm = data['bpm'];
+          // bpmNotifier.value = (data['bpm'] ?? 0).toDouble();
+          // battNotifier.value = (data['BATT'] ?? 0).toInt();
+          // _maybeSaveBattery(battNotifier.value);
+          /*final bpm = data['bpm'];
           final spo2 = data['spO2'];
           final temp = data['temp'];
 
           if (bpm is! num || spo2 is! num || temp is! num) {
             print("Invalid packet: $data");
             return;
-          }
+          }*/
           // telemetryController.add(data.toString());
           final csvRow = _getNextCsvRow();
           if (csvRow != null) {
@@ -407,10 +446,11 @@ class BandBleService {
               ),
             );
           }
-          print("BATT: ${data['BATT']}");
-          print("SPO2: ${data['spO2']}");
-          print("BPM: ${data['bpm']}");
-          print("TEMP: ${data['temp']}");
+          _maybeSaveBattery(battNotifier.value);
+          print("BPM: ${csvRow?.bpm}");
+          print("SPO2: ${csvRow?.spo2}");
+          print("TEMP: ${csvRow?.temp}");
+          // print("TEMP: ${data['temp']}");
         } catch (e) {
           print("Invalid JSON: $jsonStr");
         }
@@ -462,6 +502,7 @@ class BandBleService {
     _scanSubscription?.cancel();
     _connectionSubscription?.cancel();
     _notifySubscription?.cancel();
+    _csvTimer?.cancel();
     if (_carWaitListener != null) {
       CarBleService.instance.statusNotifier.removeListener(_carWaitListener!);
       _carWaitListener = null;
