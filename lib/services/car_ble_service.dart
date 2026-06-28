@@ -140,6 +140,7 @@ class CarBleService {
               } else {
                 // reconnect — skip precheck, go straight to ready
                 status = BleDeviceStatus.ready;
+                print("Reconnection successful, skip straight to ready");
               }
 
               // NOTE: no need for MTU neotiation here
@@ -231,12 +232,13 @@ class CarBleService {
       return;
     }
     if (_deviceId == null) return;
-
+    status = BleDeviceStatus.connecting;
     if (_reconnectAttempts >= maxReconnectAttempts) {
       print("[CAR] Reconnect timeout");
       messagesController.add(
         "Car Connection lost. Unable to reconnect, please try again.",
       );
+      status = BleDeviceStatus.disconnected;
       return;
     }
 

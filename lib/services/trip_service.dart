@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_models.dart';
@@ -21,6 +20,9 @@ import '../models/trip.dart';
 import '../models/trips_response.dart';
 import 'package:http/http.dart' as http;
 import 'api_client_service.dart' as api_service;
+
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+// import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 class TripService {
   static const baseUrl = api_service.ApiClient.baseUrl;
