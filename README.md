@@ -2,6 +2,20 @@
 
 A new Flutter project.
 
+# Normal Person Readings :
+
+thresholds = DriverHealthThresholds(
+    avgHeartRate: 80,
+    minHeartRate: 75,
+    maxHeartRate: 110,
+    avgSpo2: 98,
+    minSpo2: 96,
+    maxSpo2: 99,
+    avgTemp: 37,
+    minTemp: 36.2,
+    maxTemp: 38.5,
+);
+
 # FLOW of Condition_Coordinator 
 BandBleService
     ↓ VitalReadings

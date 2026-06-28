@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_service.dart';
 import 'package:guardian_drive_mobile/services/medical_info_service.dart';
+import 'package:guardian_drive_mobile/services/mock_vitals_stream.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/future_table_row.dart';
@@ -121,18 +122,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       DriverHealthThresholds thresholds = await MedicalInfoService()
           .getDriverThresholds();
 
-      // FOR NOW : SHOULD BE REMOVED
-      thresholds = DriverHealthThresholds(
-        avgHeartRate: 80,
-        minHeartRate: 60,
-        maxHeartRate: 100,
-        avgSpo2: 96,
-        minSpo2: 95,
-        maxSpo2: 100,
-        avgTemp: 36.5,
-        minTemp: 36.0,
-        maxTemp: 37.5,
-      );
+      traceLog("Fetched Threhsolds For predrive checking", thresholds);
       _showPredriveCheckDialog();
       // 2. Start (predrive health check)
       bool checkPassed = await PreDriveCheckService.startPreDriveCheck(
@@ -449,6 +439,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                               );
                               return;
                             }
+                            // VitalsStreamService.instance.start(); // to call mock data when needed
                             buttonActionLoading ? null : _startTrip();
                             print('start trip checkings');
                           },

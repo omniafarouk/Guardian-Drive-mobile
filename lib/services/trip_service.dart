@@ -4,11 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 import 'package:guardian_drive_mobile/services/band_ble_service.dart';
-import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_service.dart';
-import 'package:guardian_drive_mobile/services/medical_info_service.dart';
-import 'package:guardian_drive_mobile/services/mock_vitals_stream.dart';
 import 'package:guardian_drive_mobile/services/user_service.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/hive_store.dart';
 import 'package:guardian_drive_mobile/services/vitals_aggregation/vitals_aggregator_service.dart';
@@ -36,20 +32,12 @@ class TripService {
   // Multiple subscribers (UI pages, HealthMonitorService, VitalsAggregator)
   // all listen to this same stream — one BLE/mock connection, distributed.
 
-  // Broadcast stream — multiple pages can listen to this
-  // final StreamController<VitalReadings> _vitalsController =
-  //     StreamController<VitalReadings>.broadcast();
-
-  // Public stream that any page can subscribe to
-  // Stream<VitalReadings> get vitalsStream => _vitalsController.stream;
   Stream<VitalReadings> get vitalsStream =>
       BandBleService.instance.telemetryController.stream;
+
   // ── Internal services ─────────────────────────────────────────────
-
   StreamSubscription<VitalReadings>? _vitalsSubscription;
-  //  ---- readings and bluetooth stream things (currently just a mock stream) ---------
   VitalsAggregator? _vitalsAggregator;
-
   HealthMonitorService? _healthMonitor;
 
   // Notifier for the SOS Button Appereance
@@ -71,20 +59,6 @@ class TripService {
     isTripActive = false;
     tripIsActiveNotifier.value = false;
   }
-
-  // void initiateVitalStream() {
-  //   if (_vitalsSubscription != null) return;
-  //   _vitalsSubscription = mockVitalsStream().listen((reading) {
-  //     // _vitalsController.add(reading); // → broadcast to all subscribers
-  //     _vitalsAggregator!.onReading(reading); // → aggregation pipeline
-  //   });
-
-  //   // _vitalsSubscription = BandBleService.instance.telemetryController.stream
-  //   //     .listen((reading) {
-  //   //       _vitalsController.add(reading); // → broadcast to all subscribers
-  //   //       _vitalsAggregator!.onReading(reading); // → aggregation pipeline
-  //   //     });
-  // }
 
   Future<void> startTripTracking({
     required int tripId,
@@ -125,8 +99,6 @@ class TripService {
   }
 
   // called to stop the tracking and update avgReading in database
-  // DOESN'T Actually end trip in database
-  // TODO: FOR NORMAL COMPLETED TRIP , MUST BE CALLED OUTSIDE OF THIS FUNCTION
   Future<void> endTripTracking() async {
     if (activeTripId == null) {
       clearActiveTrip();
@@ -256,7 +228,7 @@ class TripService {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
-      //final List tripsJson = data['trips'];  // 👈 FIX HERE
+      //final List tripsJson = data['trips'];
 
       // return tripsJson.map((e) => Trip.fromJson(e)).toList();
       return Trip.fromJson(data['trip']);
