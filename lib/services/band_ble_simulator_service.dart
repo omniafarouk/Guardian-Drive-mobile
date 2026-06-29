@@ -400,6 +400,7 @@ class BandBleService {
             _maybeSaveBattery(battNotifier.value);
             print("[BAND] BATT: ${battNotifier.value}");
           }
+                   
         } catch (e) {
           print("Invalid JSON: $jsonStr");
         }

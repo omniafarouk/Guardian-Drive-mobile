@@ -108,10 +108,7 @@ class CarBleService {
 
   // OLD VERSION OF PREDRIVE CHECK PASSED
   /*
-  // OLD VERSION OF PREDRIVE CHECK PASSED
-  /*
   Future<void> sendPredriveCheckPassed() async {
-    if (status != BleDeviceStatus.ready) {
     if (status != BleDeviceStatus.ready) {
       print("[CAR] cannot send predrive check success — not connected");
       messagesController.add(

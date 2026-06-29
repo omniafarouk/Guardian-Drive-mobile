@@ -139,9 +139,9 @@ class BandBleService {
         )
         .listen((device) {
           print("Found device ${device.name} - ${device.id}");
-
-          if (device.name == "ESP32_BAND") {
-            print("FOUNDD $device.name");
+          final name = device.name.trim();
+          if (name == "ESP32_BAND") {
+            print("FOUND ESP32_BAND");
             _scanTimeout?.cancel();
             _deviceId = device.id;
             _scanSubscription?.cancel();
@@ -164,7 +164,7 @@ class BandBleService {
                 DeviceConnectionState.connected) {
               status = BleDeviceStatus.connected;
               print("CONNECTION SUCCESSFUL");
-              _readyForReadings = false;
+              _readyForReadings = false; // should pass system precheck first
               _reconnectAttempts = 0;
               BandService.patchBand(bandDeviceId!, isConnected: true);
               print("# OF AT ATTEMPTS RESETEDDDD $_reconnectAttempts");
@@ -387,6 +387,7 @@ class BandBleService {
       return;
     }
     _reconnectAttempts++;
+    status = BleDeviceStatus.connecting;
     print(" Band # OF AT ATTEMPTS NOW $_reconnectAttempts");
 
     Future.delayed(const Duration(seconds: 3), () {

@@ -65,11 +65,11 @@ enum ConditionSeverity {
   String get displayName {
     switch (this) {
       case ConditionSeverity.MILD:
-        return 'Mild';
+        return 'Normal';
       case ConditionSeverity.MODERATE:
-        return 'Moderate';
-      case ConditionSeverity.CRITICAL:
         return 'Critical';
+      case ConditionSeverity.CRITICAL:
+        return 'Severe';
       case ConditionSeverity.NORMAL:
         return 'Normal';
     }

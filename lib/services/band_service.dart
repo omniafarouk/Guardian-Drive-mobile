@@ -2,7 +2,7 @@ import 'package:guardian_drive_mobile/services/api_client_service.dart';
 
 class BandService {
   static Future<bool> patchBand(int deviceId, {bool? isConnected, int? batteryLevel}) async {
-    print('Patch Band Function Called');
+    print('Patch Band Function Called to isConnected = $isConnected');
     final body = <String, dynamic>{};
 
     if (batteryLevel != null) {
