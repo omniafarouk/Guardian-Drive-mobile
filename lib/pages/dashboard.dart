@@ -90,7 +90,7 @@ class _DashboardState extends State<Dashboard> {
     // startTracking();
     // Subscribe to the ble broadcast stream
     _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
-      _latestReading = reading; // no setState — just store it quietly
+        _latestReading = reading;
     });
   }
 

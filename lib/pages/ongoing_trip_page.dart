@@ -18,6 +18,7 @@ import 'package:guardian_drive_mobile/widgets/future_table_row.dart';
 import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:guardian_drive_mobile/services/trip_monitoring_service.dart';
 
 // import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
@@ -84,6 +85,7 @@ class _OngoingTripState extends State<OngoingTrip> {
 
   void endTrip() async {
     print("Ending trip..");
+    TripMonitoringService.instance.stopMonitoring();
     await TripService().patchTrip(
       TripService().activeTripId!,
       TripStatus.COMPLETED,
@@ -600,7 +602,12 @@ class _OngoingTripState extends State<OngoingTrip> {
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
-                                    Navigator.pop(context, true); // Yes
+                                    //Navigator.pop(context, true); // Yes
+                                    Navigator.pushNamedAndRemoveUntil(
+                                      context,
+                                      '/home',
+                                      (route) => false,
+                                    );
                                   },
                                   child: const Text('Yes'),
                                 ),

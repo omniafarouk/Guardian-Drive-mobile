@@ -15,6 +15,7 @@ import '../widgets/map.dart' as MapDrawer;
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import '../services/car_ble_service.dart';
 import '../models/enums.dart';
+import 'package:guardian_drive_mobile/services/trip_monitoring_service.dart';
 
 // import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
@@ -177,7 +178,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         // testMode: true,
       );
       print('Trip started — watch console for breach traces');
-
+      TripMonitoringService.instance.startMonitoring();
       navigateToOngoingPage();
     } catch (e) {
       if (!mounted) return;
