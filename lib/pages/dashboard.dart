@@ -20,6 +20,7 @@ import 'package:guardian_drive_mobile/widgets/custom_card.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:guardian_drive_mobile/widgets/sos_button_widget.dart';
 import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
+import 'package:http/http.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -90,7 +91,17 @@ class _DashboardState extends State<Dashboard> {
     // startTracking();
     // Subscribe to the ble broadcast stream
     _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
-      _latestReading = reading; // no setState — just store it quietly
+      _latestReading = reading;
+    });
+  }
+
+  void _refreshReadings() {
+    if (!mounted || _latestReading == null) return;
+
+    setState(() {
+      bpm = _latestReading!.heartRate;
+      spO2 = _latestReading!.spo2;
+      temp = _latestReading!.temp;
     });
   }
 
@@ -248,6 +259,7 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void startLiveReadings() {
+    _refreshReadings();
     timer = Timer.periodic(reloadReadingsRange, (_) {
       // refresh the live bpm every 10 seconds not on real readings , is this correct tho??
       if (!mounted) return;

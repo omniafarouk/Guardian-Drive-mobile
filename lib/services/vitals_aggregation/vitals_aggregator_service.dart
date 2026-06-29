@@ -39,6 +39,9 @@ class VitalsAggregator {
     traceLog('Finalize called — stopping timers');
     _aggregator.stop();
 
+    await _aggregator
+        .forceFlush(); // force flush if there is values that are not yet aggregated into hive box
+
     VitalReadings? tripAvg = await _computeTripAverage();
     if (tripAvg == null) {
       traceLog('Finalize FAILED — no data found');
@@ -155,12 +158,14 @@ class _ThirtyMinAggregator {
   void addReading(VitalReadings r) => _fiveMin.addReading(r);
 
   Future<void> forceFlush() async {
+    print("aggregator force flushing");
     await _fiveMin.forceFlush();
 
     final readings = await _fiveMin.flush();
 
     if (readings.isNotEmpty) {
       final avg = _calulateAvgReadings(readings);
+      print("calculated avg readings in hive force flush ${avg}");
       await HiveStore.saveThirtyMin(avg);
     }
   }

@@ -593,7 +593,11 @@ class _OngoingTripState extends State<OngoingTrip> {
                               actions: [
                                 TextButton(
                                   onPressed: () {
-                                    Navigator.pop(context, false); // No
+                                    Navigator.pushNamedAndRemoveUntil(
+                                      context,
+                                      '/home',
+                                      (route) => false,
+                                    ); // No
                                   },
                                   child: const Text('No'),
                                 ),

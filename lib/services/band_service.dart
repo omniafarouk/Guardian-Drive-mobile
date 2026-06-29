@@ -41,7 +41,7 @@ class BandService {
       "spo2": spo2,
       "temp": temp,
     };
-    final endpoint = "/post-OnGoingTrips-vitals";
+    final endpoint = "/api/post-OnGoingTrips-vitals";
     final res = await ApiClient.post(endpoint, body);
     print("STATUS CODE: ${res.statusCode}");
     print("BODY: ${res.body}");

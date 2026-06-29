@@ -154,9 +154,10 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       traceLog("Trip Status updated");
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Trip started successfully')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text('Trip started successfully')),
+      // );
+      _showDialog('Trip Status', 'Trip Started Successfully');
 
       // normally should before it call predrive check and update database trip status
       // THIS IS TestMode = true for fast setup

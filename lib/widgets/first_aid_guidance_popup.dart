@@ -52,7 +52,10 @@ Future<void> showFirstAidGuidanceDialog(
       ),
       actions: [
         ElevatedButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => {
+            Navigator.pop(context),
+            Navigator.pushReplacementNamed(context, "/home"),
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1A3A5C),
             shape: RoundedRectangleBorder(
@@ -87,7 +90,7 @@ Future<String> getGuidanceString(VitalReadings? readings) async {
 
     if (guidances.isEmpty) {
       traceLog("loading guidance returned empty");
-      return 'No specific guidance available. Pull over and rest.';
+      return 'Pull over and rest.';
     }
 
     const severityOrder = {
