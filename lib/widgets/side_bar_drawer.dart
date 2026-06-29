@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/services/medical_info_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
+import 'package:guardian_drive_mobile/services/trip_service.dart';
 
 class SideBarDrawer extends StatefulWidget {
   const SideBarDrawer({super.key});
@@ -165,21 +166,104 @@ class _SideBarDrawerState extends State<SideBarDrawer> {
 
   Future<void> _logout() async {
     final navigator = Navigator.of(context);
-    // this is used because below Navigator.pushNamedAndRemove(context, '/login', (route) => false) and context navigation here causes problems with async and await functionalities
-    // Next,Show confirmation dialog
+    final isTripOngoing = TripService().isTripActive;
+    if (isTripOngoing) {
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF0D1B2A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Center(
+            child: Text(
+              'Cannot Logout',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          content: const Text(
+            'You cannot logout while a trip is ongoing. Please end your trip first.',
+            style: TextStyle(color: Colors.white70),
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A3A5C),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      return; // ✅ stop logout flow
+    }
+
     bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        backgroundColor: const Color(0xFF0D1B2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Center(
+          child: Text(
+            'Confirm Logout',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(color: Colors.white70),
+          textAlign: TextAlign.center,
+        ),
         actions: [
           TextButton(
+            style: TextButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Logout',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ),
         ],
       ),

@@ -2,7 +2,6 @@
 // import 'dart:async';
 // import 'dart:ui';
 
-// import 'package:flutter_background_service/flutter_background_service.dart';
 // import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 // import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
 // import 'package:guardian_drive_mobile/services/health_monitoring_services/health_monitor.dart';

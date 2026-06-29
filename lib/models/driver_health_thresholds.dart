@@ -38,4 +38,15 @@ class DriverHealthThresholds {
       avgTemp: (json['avgTemp'] as num).toDouble(),
     );
   }
+  Map<String, dynamic> toJson() => {
+    'minHeartRate': minHeartRate,
+    'maxHeartRate': maxHeartRate,
+    'avgHeartRate': avgHeartRate,
+    'minSpo2': minSpo2,
+    'maxSpo2': maxSpo2,
+    'avgSpo2': avgSpo2,
+    'minTemp': minTemp,
+    'maxTemp': maxTemp,
+    'avgTemp': avgTemp,
+  };
 }

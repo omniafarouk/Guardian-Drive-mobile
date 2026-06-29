@@ -1,104 +1,200 @@
-// services/pre_drive_check_service.dart
 import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:guardian_drive_mobile/main.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_trigger_coordinator.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/driver_baseline_with_noise_model.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_models.dart';
+import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/threshold_checker_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 
+// import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
+
 class PreDriveCheckService {
   final DriverHealthThresholds thresholds;
-  final Duration timeout;
-  final bool testMode;
+  final int requiredCleanReadings;
 
-  bool _cancelled = false;
+  static const int _maxAttempts = 3;
+  static const Duration _attemptTimeout = Duration(minutes: 1);
+  static const Duration _waitBetweenAttempts = Duration(seconds: 10);
 
-  PreDriveCheckService({required this.thresholds, this.testMode = false})
-    : timeout = testMode ? Duration(seconds: 20) : Duration(minutes: 2);
+  PreDriveCheckService({
+    required this.thresholds,
+    this.requiredCleanReadings = 3,
+  });
 
-  /// Runs the pre-drive health scan.
-  ///
-  /// [vitalsStream] — the same broadcast stream from TripService,
-  /// already running before this is called.
-  ///
-  /// Returns a [PreDriveResult] when one of three things happens:
-  ///   1. An AlertTier pattern is detected → blocked
-  ///   2. [timeout] expires with no serious match → passed
-  ///   3. [cancel()] is called → cancelled
-  Future<PreDriveResult> run(Stream<VitalReadings> vitalsStream) async {
-    _cancelled = false;
-
+  /// Returns true if passed, false if timed out
+  Future<bool> run(Stream<VitalReadings> vitalsStream) async {
     final checker = ThresholdChecker(thresholds);
-    final baselineWithNoise = DriverBaselineWithNoise.fromThresholds(
-      thresholds,
-    );
+    final completer = Completer<bool>();
+    int cleanStreak = 0;
 
-    final coordinator = BreachTriggerCoordinator(
-      baseline: baselineWithNoise,
-      testMode: testMode,
-    );
+    final sub = vitalsStream.listen((reading) {
+      if (completer.isCompleted) return;
 
-    // Completer resolves the Future the moment a result is determined
-    final completer = Completer<PreDriveResult>();
+      traceLog("pre-drive checking ...", reading.toString());
 
-    StreamSubscription<VitalReadings>? sub;
+      final breaches = checker.check(reading);
+      final isBad = breaches.any(
+        (b) =>
+            b.severity == ConditionSeverity.CRITICAL ||
+            b.severity == ConditionSeverity.MODERATE,
+      );
 
-    // Timeout — if nothing serious found within the window, pass by default
-    final timer = Timer(timeout, () {
-      if (!completer.isCompleted) {
-        traceLog('Pre-drive check timed out — passed by default');
-        sub?.cancel();
-        completer.complete(const PreDriveResult(status: PreDriveStatus.passed));
+      if (isBad) {
+        cleanStreak = 0;
+        traceLog(
+          'PreDrive: bad reading, streak reset',
+          breaches.map((b) => b.type.name).join(', '),
+        );
+      } else {
+        cleanStreak++;
+        traceLog(
+          'PreDrive: clean reading',
+          '$cleanStreak / $requiredCleanReadings',
+        );
+
+        if (cleanStreak >= requiredCleanReadings) {
+          completer.complete(true);
+        }
       }
     });
 
-    sub = vitalsStream.listen((reading) {
-      if (completer.isCompleted) return;
+    final result = await completer.future.timeout(
+      _attemptTimeout,
+      onTimeout: () => false,
+    );
 
-      if (_cancelled) {
-        timer.cancel();
-        sub?.cancel();
-        completer.complete(
-          const PreDriveResult(status: PreDriveStatus.cancelled),
-        );
+    await sub.cancel();
+    return result;
+  }
+
+  Future<void> startPreDriveCheck(BuildContext context) async {
+    final preDriveService = PreDriveCheckService(thresholds: thresholds);
+
+    for (int attempt = 1; attempt <= _maxAttempts; attempt++) {
+      traceLog('PreDrive: attempt $attempt / $_maxAttempts', '');
+
+      // ✅ Always use navigatorKey for showing dialogs in async context
+      final showCtx = navigatorKey.currentContext;
+      if (showCtx == null || !showCtx.mounted) return;
+      _showPredriveCheckDialog(showCtx, attempt);
+
+      final passed = await preDriveService.run(
+        BandBleService.instance.telemetryController.stream,
+      );
+
+      // ✅ Fresh context to close the checking dialog
+      final closeCtx = navigatorKey.currentContext;
+      if (closeCtx != null) {
+        if (!showCtx.mounted) return;
+        Navigator.of(closeCtx, rootNavigator: true).pop();
+      }
+
+      if (passed) {
+        traceLog('PreDrive: passed on attempt $attempt', '');
+        bool carInformed = await CarBleService.instance
+            .sendPredriveCheckPassed();
+
+        if (!carInformed) {
+          throw Exception("Car connection Failed");
+        }
         return;
       }
 
-      final breaches = checker.check(reading);
-      final triggerEvaluation = coordinator.evaluate(
-        breaches,
-        DateTime.now(),
-        reading,
-      );
+      traceLog('PreDrive: attempt $attempt timed out', '');
 
-      if (!triggerEvaluation.hasAction) return;
+      if (attempt < _maxAttempts) {
+        // ✅ Fresh context for waiting dialog
+        final waitCtx = navigatorKey.currentContext;
+        if (waitCtx != null) {
+          if (!waitCtx.mounted) return;
+          await _showWaitingDialog(waitCtx, attempt);
+        }
 
-      traceLog(
-        'Pre-drive evaluation',
-        'tier=${triggerEvaluation.tier!.name} + condition=${triggerEvaluation.conditionName}',
-      );
-
-      if (triggerEvaluation.tier == AlertTier.alertTrigger ||
-          triggerEvaluation.tier == AlertTier.warning) {
-        // alert condition detected — block the driver
-        timer.cancel();
-        sub?.cancel();
-        completer.complete(
-          PreDriveResult(
-            status: PreDriveStatus.blocked,
-            blockedBy: triggerEvaluation.conditionName,
-          ),
-        );
+        await Future.delayed(_waitBetweenAttempts);
       }
-    });
+    }
 
-    return completer.future;
+    traceLog('PreDrive: all $_maxAttempts attempts failed', '');
+    throw Exception("predrive health check failed");
   }
 
-  /// Call this when the driver taps "Cancel" on the pre-drive screen
-  void cancel() {
-    _cancelled = true;
+  void _showPredriveCheckDialog(BuildContext context, int attempt) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color.fromARGB(255, 1, 21, 51),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 20),
+            Text(
+              'Pre-drive Check In Progress, Attempt $attempt',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Please wait a few seconds…',
+              style: TextStyle(color: Color(0xFF979797), fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showWaitingDialog(BuildContext context, int attempt) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0D1B2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Center(
+          child: Text(
+            'Check Incomplete',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+        ),
+        content: Text(
+          'Attempt $attempt failed. Waiting ${_waitBetweenAttempts.inSeconds}s before attempt ${attempt + 1}...',
+          style: const TextStyle(color: Colors.white70),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A3A5C),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

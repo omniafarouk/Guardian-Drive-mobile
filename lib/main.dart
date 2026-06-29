@@ -67,7 +67,8 @@ class _MyAppState extends State<MyApp> {
           _bandAdjustDialogVisible = true;
           showDialog(
             context: context,
-            barrierDismissible: false, // tapping outside the dialog does nothing
+            barrierDismissible:
+                false, // tapping outside the dialog does nothing
             builder: (_) => AlertDialog(
               title: Row(
                 children: [

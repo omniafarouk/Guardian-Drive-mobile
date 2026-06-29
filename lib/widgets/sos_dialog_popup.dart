@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:guardian_drive_mobile/models/alert.dart';
 import 'package:guardian_drive_mobile/models/alert_request.dart';
 import 'package:guardian_drive_mobile/models/alert_summary.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/alert_service.dart';
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
@@ -18,7 +16,14 @@ Future<void> showConfirmSOSDialog(
     context: context,
     useRootNavigator: true,
     builder: (BuildContext dialogContext) => AlertDialog(
-      title: const Center(child: Text("Request Help ?")),
+      backgroundColor: const Color(0xFF0D1B2A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Center(
+        child: Text(
+          "Request Help ?",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+      ),
       actions: <Widget>[
         TextButton(
           style: TextButton.styleFrom(
@@ -48,24 +53,27 @@ Future<void> showConfirmSOSDialog(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
           onPressed: () async {
-            Navigator.of(
-              dialogContext,
-              rootNavigator: true,
-            ).pop(); // close confirm
+            Navigator.of(dialogContext, rootNavigator: true).pop();
 
-            // Show loading
             bool loadingShowing = true;
             showDialog(
               context: context,
               barrierDismissible: false,
               useRootNavigator: true,
-              builder: (_) => const AlertDialog(
-                content: Column(
+              builder: (_) => AlertDialog(
+                backgroundColor: const Color(0xFF0D1B2A),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                content: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(),
+                    CircularProgressIndicator(color: Colors.white),
                     SizedBox(height: 16),
-                    Text("Sending SOS Alert..."),
+                    Text(
+                      "Sending SOS Alert...",
+                      style: TextStyle(color: Colors.white70),
+                    ),
                   ],
                 ),
               ),
@@ -105,13 +113,29 @@ Future<void> showConfirmSOSDialog(
                   context: context,
                   useRootNavigator: true,
                   builder: (ctx) => AlertDialog(
-                    title: const Text("Failed to send SOS"),
-                    content: Text(e.toString()),
+                    backgroundColor: const Color(0xFF0D1B2A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    title: const Text(
+                      "Failed to send SOS",
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    content: Text(
+                      e.toString(),
+                      style: const TextStyle(color: Colors.white70),
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () =>
                             Navigator.of(ctx, rootNavigator: true).pop(),
-                        child: const Text("OK"),
+                        child: const Text(
+                          "OK",
+                          style: TextStyle(color: Colors.white54),
+                        ),
                       ),
                     ],
                   ),

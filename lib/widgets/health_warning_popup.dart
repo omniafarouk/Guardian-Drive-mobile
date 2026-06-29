@@ -56,19 +56,41 @@ class _HealthWarningDialogState extends State<_HealthWarningDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Health Alert'),
-      content: Text('Health alert: ${widget.conditionName}'),
+      backgroundColor: const Color(0xFF0D1B2A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Center(
+        child: Text(
+          '⚠️ Health Warning',
+          style: TextStyle(
+            color: Colors.orangeAccent,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      content: Text(
+        'Health alert: ${widget.conditionName}',
+        style: const TextStyle(color: Colors.white70, fontSize: 14),
+        textAlign: TextAlign.center,
+      ),
       actions: [
         TextButton(
           style: TextButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 157, 207, 99),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
           onPressed: () {
             Navigator.pop(context);
           },
           child: const Text(
             'OK',
-            style: TextStyle(color: Color.fromARGB(255, 92, 92, 92)),
+            style: TextStyle(
+              color: Color.fromARGB(255, 92, 92, 92),
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
         ),
         ElevatedButton(
@@ -83,10 +105,15 @@ class _HealthWarningDialogState extends State<_HealthWarningDialog> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
           child: const Text(
             'First Aid Guidance',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
         ),
       ],

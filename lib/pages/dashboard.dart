@@ -17,6 +17,7 @@ import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/custom_card.dart';
 import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
+import 'package:guardian_drive_mobile/widgets/sos_button_widget.dart';
 import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -65,9 +66,6 @@ class _DashboardState extends State<Dashboard> {
   late StreamSubscription<VitalReadings> _sub;
   final Duration reloadReadingsRange = Duration(seconds: 10);
 
-  // ------💡 TESTINGGGGG -----
-  final tripId = 26;
-
   StreamSubscription? bandBleSub;
   StreamSubscription? carBleSub;
   @override
@@ -89,15 +87,10 @@ class _DashboardState extends State<Dashboard> {
     initDashboard();
     startLiveReadings();
     // startTracking();
-    // Subscribe to the same broadcast stream
+    // Subscribe to the ble broadcast stream
     _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
       _latestReading = reading; // no setState — just store it quietly
     });
-
-    // _sub = TripService().vitalsStream.listen((reading) {
-    //   // setState(() => _latestReading = reading);
-    //   _latestReading = reading; // no setState — just store it quietly
-    // });
   }
 
   @override
@@ -415,26 +408,8 @@ class _DashboardState extends State<Dashboard> {
       appBar: CustomAppBar(title: "Overview"),
       drawer: const SideBarDrawer(),
 
-      floatingActionButton: ValueListenableBuilder<bool>(
-        valueListenable: TripService.instance.tripIsActiveNotifier,
-        builder: (context, tripIsActive, child) {
-          return tripIsActive
-              ? FloatingActionButton(
-                  backgroundColor: Colors.red,
-                  onPressed: () async {
-                    traceLog('SOS TRIGGERED');
-                    await showConfirmSOSDialog(context, _latestReading);
-                  },
-                  child: const Text(
-                    'SOS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(); // renders nothing when no trip
-        },
+      floatingActionButton: SosFloatingButtonWidget(
+        latestReading: _latestReading,
       ),
 
       body: Container(
@@ -1069,68 +1044,6 @@ class _DashboardState extends State<Dashboard> {
                           );
                         }).toList(),
                       ),
-                ElevatedButton(
-                  onPressed: () async {
-                    try {
-                      traceLog("tripId", tripId);
-                      final updatedTrip = await TripService().patchTrip(
-                        tripId,
-                        TripStatus.ONGOING,
-                      );
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Trip started successfully'),
-                        ),
-                      );
-                      traceLog("updated Trip", updatedTrip);
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(e.toString())));
-                    }
-
-                    try {
-                      DriverHealthThresholds thresholds =
-                          DriverHealthThresholds(
-                            avgHeartRate: 80,
-                            minHeartRate: 60,
-                            maxHeartRate: 100,
-                            avgSpo2: 96,
-                            minSpo2: 95,
-                            maxSpo2: 100,
-                            avgTemp: 36.5,
-                            minTemp: 36.0,
-                            maxTemp: 37.5,
-                          );
-
-                      // normally should before it call predrive check and update database trip status
-                      await TripService().startTripTracking(
-                        tripId: tripId,
-                        thresholds: thresholds,
-                        testMode: true,
-                      );
-                      print('Trip started — watch console for breach traces');
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Couldn\'t Start Trip:${e.toString().replaceAll('Exception: ', '')}',
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: Text('TEST: Start Mock Trip'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    await TripService().endTripTracking();
-                  },
-                  child: Text('TEST: End Trip'),
-                ),
               ],
             ),
           ),

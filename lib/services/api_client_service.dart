@@ -38,7 +38,6 @@ class ApiClient {
     );
   }
 
-  
   // Use this for all POST requests
   static Future<http.Response> post(
     String endpoint,
@@ -51,7 +50,7 @@ class ApiClient {
     );
   }
 
-/*
+  /*
 
   // Use this for all DELETE requests
   static Future<http.Response> delete(String endpoint) async {

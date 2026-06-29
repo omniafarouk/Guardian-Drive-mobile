@@ -1,7 +1,7 @@
 // services/condition_pattern_matcher.dart
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
+import 'package:guardian_drive_mobile/models/alert_tier.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_patterns_data.dart';
-import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_trigger_coordinator.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/driver_baseline_with_noise_model.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/vitals_matcher_models.dart';
 
@@ -15,8 +15,6 @@ class PatternMatch {
     required this.minRatio,
   });
 }
-
-final warningNotificationAlertRatio = 0.9;
 
 class ConditionPatternMatcher {
   final List<ConditionPattern> patterns = HealthPatterns;
@@ -52,7 +50,8 @@ class ConditionPatternMatcher {
             minRatio: minRatio,
           ),
         );
-      } else if (minRatio >= warningNotificationAlertRatio) {
+      } else if (minRatio >= 0.9) {
+        // ← add this back
         matches.add(
           PatternMatch(
             conditionName: pattern.name,
@@ -62,7 +61,6 @@ class ConditionPatternMatcher {
         );
       }
     }
-
     matches.sort(
       (a, b) => b.minRatio.compareTo(a.minRatio),
     ); // strongest match first

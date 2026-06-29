@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/main.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/models/alert_tier.dart';
+import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_pattern_matcher.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/condition_trigger_coordinator.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/driver_baseline_with_noise_model.dart';
 import 'package:guardian_drive_mobile/services/health_monitoring_services/threshold_checker_service.dart';
@@ -49,12 +51,42 @@ class HealthMonitorService {
 
   Future<void> _onReading(VitalReadings reading) async {
     final breaches = _checker.check(reading);
-    if (breaches.isEmpty) return;
-    final triggerEvaluation = _coordinator.evaluate(
-      breaches,
-      DateTime.now(),
-      reading,
-    );
+
+    TriggerEvaluation triggerEvaluation;
+
+    if (breaches.isEmpty) {
+      // no threshold breach — check pattern directly on raw reading
+      final patternMatched = _coordinator.classifyPattern(reading);
+
+      if (patternMatched == null || patternMatched.tier == null) {
+        return; // no breach, no pattern → do nothing
+      }
+
+      // pattern matched with no breach — fire alert/warning directly
+      // still respect cooldown
+      if (_coordinator.cooldownUntil != null &&
+          DateTime.now().isBefore(_coordinator.cooldownUntil!)) {
+        traceLog('Pattern match suppressed — cooldown active');
+        return;
+      }
+
+      triggerEvaluation = TriggerEvaluation(
+        tier: patternMatched.tier,
+        conditionName: patternMatched.conditionName,
+        breaches: [],
+      );
+
+      // start cooldown since we're about to fire
+      _coordinator.cooldownUntil = DateTime.now().add(_coordinator.cooldown);
+    } else {
+      // breaches exist — go through full coordinator pipeline
+      // (streak confirmation + pattern matching + cooldown)
+      triggerEvaluation = _coordinator.evaluate(
+        breaches,
+        DateTime.now(),
+        reading,
+      );
+    }
 
     if (!triggerEvaluation.hasAction) return;
 
@@ -62,28 +94,21 @@ class HealthMonitorService {
       'HealthMonitor firing',
       'tier=${triggerEvaluation.tier!.name}, condition=${triggerEvaluation.conditionName}',
     );
-    // just for logging , no functionality here
-    for (final breach in triggerEvaluation.breaches) {
-      traceLog('HealthMonitor firing for', breach.toString());
+
+    if (triggerEvaluation.breaches != null) {
+      for (final breach in triggerEvaluation.breaches!) {
+        traceLog('HealthMonitor firing for', breach.toString());
+      }
     }
 
-    // TODO: add those to the alerts handlers
-    // await _hardwareController
-    //     .onHealthAbnormal(); // local-first, no network wait
-    // onAlertTriggered(breach); // caller POSTs the alert to backend in parallel
+    final conditionName =
+        triggerEvaluation.conditionName ?? 'Unknown Condition';
 
     if (triggerEvaluation.tier == AlertTier.warning) {
-      traceLog('Send Warning Notification To Driver :', reading.toString());
-      String? conditionName = triggerEvaluation.conditionName;
-      conditionName ??= "Unknown Condition?!!";
+      traceLog('Send Warning Notification To Driver:', reading.toString());
       onWarning(conditionName, reading);
     } else if (triggerEvaluation.tier == AlertTier.alertTrigger) {
-      traceLog(
-        'Check Driver For response if not Trigger Alert : ',
-        reading.toString(),
-      );
-      String? conditionName = triggerEvaluation.conditionName;
-      conditionName ??= "Unknown Condition?!!";
+      traceLog('Trigger Alert:', reading.toString());
       onAlertTriggered(conditionName, reading);
     }
   }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:guardian_drive_mobile/models/driver_health_thresholds.dart';
+import 'package:guardian_drive_mobile/services/health_monitoring_services/pre_drive_check_service.dart';
 import 'package:guardian_drive_mobile/services/medical_info_service.dart';
+import 'package:guardian_drive_mobile/services/mock_vitals_stream.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/future_table_row.dart';
@@ -15,9 +16,8 @@ import 'package:guardian_drive_mobile/utils/location_helper.dart';
 import '../services/car_ble_service.dart';
 import '../models/enums.dart';
 
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
-// import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
-
+// import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 String _formatTripDate(DateTime date) {
   return DateFormat("MMM d, yyyy 'at' h:mm a").format(date);
@@ -124,32 +124,35 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       DriverHealthThresholds thresholds = await MedicalInfoService()
           .getDriverThresholds();
 
-      // FOR NOW : SHOULD BE REMOVED
-      thresholds = DriverHealthThresholds(
-        avgHeartRate: 80,
-        minHeartRate: 60,
-        maxHeartRate: 100,
-        avgSpo2: 96,
-        minSpo2: 95,
-        maxSpo2: 100,
-        avgTemp: 36.5,
-        minTemp: 36.0,
-        maxTemp: 37.5,
-      );
-      _showPredriveCheckDialog();
+      traceLog("Fetched Threhsolds For predrive checking", thresholds);
+      // _showPredriveCheckDialog();
       // 2. Start (predrive health check)
-      bool checkPassed = await TripService().startPreDriveCheck(
-        thresholds: thresholds,
-      );
-      if (mounted) Navigator.pop(context);
-      if (!checkPassed) {
+      if (!mounted) return;
+
+      try {
+        await PreDriveCheckService(
+          thresholds: thresholds,
+        ).startPreDriveCheck(context);
+      } catch (e) {
+        if (mounted) Navigator.pop(context);
+
         traceLog(' COULDN\'T START TRIP!!! ');
-        _showDialog(
-          "Predrive check failure",
-          "Can't start trip, predrive health check failed.",
-        );
+        _showDialog("Predrive check failure", e.toString());
         return;
       }
+
+      traceLog("Predrive Check Passed");
+
+      // if (CarBleService.instance.statusNotifier.value ==
+      //         BleDeviceStatus.disconnected ||
+      //     BandBleService.instance.statusNotifier.value ==
+      //         BleDeviceStatus.disconnected) {
+      //   _showDialog(
+      //     "Predrive check failure",
+      //     "Can't start trip, Car OR Band Connection failed.",
+      //   );
+      //   return;
+      // }
 
       // 3. start trip in database
       final updatedTrip = await TripService().patchTrip(
@@ -160,60 +163,36 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         trip = updatedTrip;
       });
 
+      traceLog("Trip Status updated");
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Trip started successfully')),
       );
 
-      // 4. start Trip Tracking and update activetripId
-      TripService().startTripTracking(
+      // normally should before it call predrive check and update database trip status
+      await TripService().startTripTracking(
         tripId: trip!.tripId,
         thresholds: thresholds,
+        // testMode: true,
       );
+      print('Trip started — watch console for breach traces');
+
       navigateToOngoingPage();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Couldn\'t Start Trip:${e.toString().replaceAll('Exception: ', '')}',
+          ),
+        ),
+      );
     } finally {
       setState(() {
         buttonActionLoading = false;
       });
     }
-  }
-
-  void _showPredriveCheckDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // user can't dismiss it
-      builder: (BuildContext context) => AlertDialog(
-        backgroundColor: Color.fromARGB(255, 1, 21, 51),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: Colors.white),
-            SizedBox(height: 20),
-            Text(
-              'Pre-drive Check In Progress',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Please wait a few seconds…',
-              style: TextStyle(color: Color(0xFF979797), fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _showDialog(String title, String message) {
@@ -439,6 +418,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                               );
                               return;
                             }
+                            // VitalsStreamService.instance.start(); // to call mock data when needed
                             buttonActionLoading ? null : _startTrip();
                             print('start trip checkings');
                           },
