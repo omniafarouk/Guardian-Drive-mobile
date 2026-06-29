@@ -93,7 +93,9 @@ class CarBleService {
   /// Call this when driver vitals cross a critical threshold.
   /// Sends "E" (Emergency stop) to the car.
   Future<void> sendSevereCaseOccurred() async {
-    if (status != BleDeviceStatus.connected) {
+    print("Sending severe case occured to car");
+    print("BLE Status $status");
+    if (status != BleDeviceStatus.ready) {
       print("[CAR] Cannot send emergency — not connected");
       messagesController.add(
         "Car Connection lost. Can't stop it automatically right now.",

@@ -5,10 +5,10 @@ import 'package:guardian_drive_mobile/services/vitals_aggregation/hive_store.dar
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 
 final Duration _fiveMinAggregatorRange = Duration(minutes: 5);
-final Duration _fiveMinAggregatorTest = Duration(seconds: 10);
+final Duration _fiveMinAggregatorTest = Duration(seconds: 30);
 
 final Duration _thirtyminAggregatorRange = Duration(minutes: 30);
-final Duration _thirtyMinAggregatorTest = Duration(seconds: 30);
+final Duration _thirtyMinAggregatorTest = Duration(minutes: 1);
 
 class VitalsAggregator {
   final _ThirtyMinAggregator _aggregator;
@@ -111,6 +111,15 @@ class _FiveMinAggregator {
     return readings;
   }
 
+  // used to force flush if the trip time was smaller than the aggregator time
+  Future<void> forceFlush() async {
+    final avg = _buffer.flushAverage();
+
+    if (avg != null) {
+      await HiveStore.saveFiveMin(avg);
+    }
+  }
+
   void stop() => _timer?.cancel();
 }
 
@@ -144,6 +153,17 @@ class _ThirtyMinAggregator {
   }
 
   void addReading(VitalReadings r) => _fiveMin.addReading(r);
+
+  Future<void> forceFlush() async {
+    await _fiveMin.forceFlush();
+
+    final readings = await _fiveMin.flush();
+
+    if (readings.isNotEmpty) {
+      final avg = _calulateAvgReadings(readings);
+      await HiveStore.saveThirtyMin(avg);
+    }
+  }
 
   void stop() {
     _timer?.cancel();

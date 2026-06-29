@@ -67,11 +67,11 @@ void showHealthAlertDialog(String conditionName, VitalReadings reading) {
           throw Exception("Couldn't trigger Health Abnormal Alert");
         }
 
-        CarBleService.instance.sendSevereCaseOccurred();
+        await CarBleService.instance.sendSevereCaseOccurred();
         traceLog("Informed car to auto disable itself");
         // End trips Calls Create Health Readings which need the trip to be completed/canceled first
         // therefore must update trip status first
-        TripService().endTripTracking();
+        await TripService().endTripTracking();
 
         final freshContext = navigatorKey.currentContext;
         if (freshContext == null || !freshContext.mounted) return;
@@ -267,8 +267,8 @@ void showAlertSuccessfulPopUp(BuildContext context, VitalReadings reading) {
             final rootContext = navigatorKey.currentContext;
             if (rootContext == null) return;
             await showFirstAidGuidanceDialog(reading, rootContext);
-            if (!rootContext.mounted) return;
-            Navigator.pushReplacementNamed(rootContext, '/home');
+            // if (!rootContext.mounted) return;
+            // Navigator.pushReplacementNamed(rootContext, '/home');
           },
           child: const Text(
             'First Aid Guidance',

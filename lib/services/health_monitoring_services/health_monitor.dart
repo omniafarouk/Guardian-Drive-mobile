@@ -24,12 +24,12 @@ class HealthMonitorService {
   final void Function(String conditionName, VitalReadings reading) onWarning;
   StreamSubscription<VitalReadings>? _subscription;
 
-  // Broadcast stream — multiple pages can listen to this
-  final StreamController<VitalReadings> _vitalsController =
-      StreamController<VitalReadings>.broadcast();
+  // // Broadcast stream — multiple pages can listen to this
+  // final StreamController<VitalReadings> _vitalsController =
+  //     StreamController<VitalReadings>.broadcast();
 
-  // Public stream that any page can subscribe to
-  Stream<VitalReadings> get vitalsStream => _vitalsController.stream;
+  // // Public stream that any page can subscribe to
+  // Stream<VitalReadings> get vitalsStream => _vitalsController.stream;
 
   HealthMonitorService({
     required DriverHealthThresholds thresholds,

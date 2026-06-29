@@ -93,6 +93,7 @@ class TripService {
       // 3. Feed aggregator manually — VitalsAggregator has no stream
       //    subscription of its own, it only exposes onReading()
       _vitalsSubscription = vitalsStream.listen((reading) {
+        traceLog('Aggregator received reading', 'HR=${reading.heartRate}');
         _vitalsAggregator!.onReading(reading);
       });
     } catch (e) {

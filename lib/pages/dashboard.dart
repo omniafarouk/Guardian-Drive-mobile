@@ -12,6 +12,7 @@ import 'package:guardian_drive_mobile/services/band_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
+import 'package:guardian_drive_mobile/utils/readings_status_colors.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
@@ -246,33 +247,6 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  // Future<void> getBandData() async {
-  //   final result = await WearableService.getWearableBand();
-
-  //   if (result["status"] == "no_band") {
-  //     setState(() {
-  //       battery = 0;
-  //       isConnected = false;
-  //     });
-  //     return;
-  //   }
-
-  //   if (result["status"] == "error") {
-  //     setState(() {
-  //       battery = 0;
-  //       isConnected = false;
-  //     });
-  //     return;
-  //   }
-
-  //   final WearableBand band = result["data"];
-
-  //   setState(() {
-  //     battery = band.batteryLevel;
-  //     isConnected = band.isConnected;
-  //   });
-  // }
-
   void startLiveReadings() {
     timer = Timer.periodic(reloadReadingsRange, (_) {
       // refresh the live bpm every 10 seconds not on real readings , is this correct tho??
@@ -341,40 +315,6 @@ class _DashboardState extends State<Dashboard> {
     return Colors.greenAccent;
   }
 
-  Color getBPMStatusColor() {
-    if (BandBleService.instance.status != BleDeviceStatus.ready)
-      return Colors.grey;
-    if (bpm >= 120) {
-      return Colors.redAccent;
-    } else if (bpm >= 90 && bpm < 120) {
-      return Colors.amberAccent;
-    } else
-      return Colors.greenAccent;
-  }
-
-  Color getSpOStatusColor() {
-    if (BandBleService.instance.status != BleDeviceStatus.ready)
-      return Colors.grey;
-    if (spO2 <= 100) {
-      return Colors.redAccent;
-    } else if (spO2 >= 95 && spO2 <= 97) {
-      return Colors.amberAccent;
-    } else
-      return Colors.greenAccent;
-  }
-
-  Color getTempStatusColor() {
-    if (BandBleService.instance.status != BleDeviceStatus.ready)
-      return Colors.grey;
-    if (temp >= 36.5 && temp <= 37.5) {
-      return Colors.greenAccent;
-    } else if (temp > 36.5 && temp < 36.5 || temp > 37.5 && temp < 38) {
-      return Colors.amberAccent;
-    } else {
-      return Colors.redAccent;
-    }
-  }
-
   Color getStatusColor(BleDeviceStatus status) {
     switch (status) {
       case BleDeviceStatus.disconnected:
@@ -390,7 +330,7 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
-    double percent = bpm / 150;
+    double percent = spO2 / 150;
     // final bounds = route.isNotEmpty
     //     ? LatLngBounds.fromPoints(route)
     //     : LatLngBounds.fromPoints([
@@ -506,7 +446,6 @@ class _DashboardState extends State<Dashboard> {
                                                 getBandConnectionStatus(),
                                                 style: TextStyle(
                                                   color: getStatusColor(status),
-                                                  // getStatusColor(bpm),
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 12,
                                                 ),
@@ -554,25 +493,24 @@ class _DashboardState extends State<Dashboard> {
                                   lineWidth: 8,
                                   percent: percent.clamp(0.0, 1.0),
                                   animation: true,
-                                  progressColor: getBPMStatusColor(),
+                                  progressColor: getSpOStatusColor(spO2),
                                   backgroundColor: Colors.white24,
                                   center: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        "$bpm",
+                                        "SpO₂",
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
-                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-
                                       Text(
-                                        "BPM",
+                                        "$spO2",
                                         style: TextStyle(
-                                          color: Colors.white70,
+                                          color: getSpOStatusColor(spO2),
                                           fontSize: 14,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ],
@@ -613,7 +551,7 @@ class _DashboardState extends State<Dashboard> {
                                             Text(
                                               '$temp °C',
                                               style: TextStyle(
-                                                color: getTempStatusColor(),
+                                                color: getTempStatusColor(temp),
                                                 fontWeight: FontWeight.w400,
                                                 fontSize: 14,
                                               ),
@@ -636,14 +574,15 @@ class _DashboardState extends State<Dashboard> {
                                     child: Row(
                                       children: [
                                         const Icon(
-                                          Icons.bloodtype,
-                                          color: Colors.blue,
+                                          Icons.monitor_heart_rounded,
+                                          color: Colors.redAccent,
                                           size: 38,
                                         ),
+                                        SizedBox(width: 5),
                                         Column(
                                           children: [
                                             const Text(
-                                              'SpO₂',
+                                              'BPM',
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.w400,
@@ -651,9 +590,9 @@ class _DashboardState extends State<Dashboard> {
                                               ),
                                             ),
                                             Text(
-                                              '$spO2 %',
+                                              '$bpm',
                                               style: TextStyle(
-                                                color: getSpOStatusColor(),
+                                                color: getBPMStatusColor(bpm),
                                                 fontWeight: FontWeight.w400,
                                                 fontSize: 14,
                                               ),

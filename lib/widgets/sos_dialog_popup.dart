@@ -102,6 +102,7 @@ Future<void> showConfirmSOSDialog(
                 );
                 return;
               }
+              await TripService().endTripTracking();
               await CarBleService.instance.sendSevereCaseOccurred();
               if (!context.mounted) return;
               traceLog('Show First Aid Guidance before dialog');

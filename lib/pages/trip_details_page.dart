@@ -135,24 +135,12 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
         ).startPreDriveCheck(context);
       } catch (e) {
         if (mounted) Navigator.pop(context);
-
         traceLog(' COULDN\'T START TRIP!!! ');
         _showDialog("Predrive check failure", e.toString());
         return;
       }
 
       traceLog("Predrive Check Passed");
-
-      // if (CarBleService.instance.statusNotifier.value ==
-      //         BleDeviceStatus.disconnected ||
-      //     BandBleService.instance.statusNotifier.value ==
-      //         BleDeviceStatus.disconnected) {
-      //   _showDialog(
-      //     "Predrive check failure",
-      //     "Can't start trip, Car OR Band Connection failed.",
-      //   );
-      //   return;
-      // }
 
       // 3. start trip in database
       final updatedTrip = await TripService().patchTrip(
@@ -171,10 +159,11 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       );
 
       // normally should before it call predrive check and update database trip status
+      // THIS IS TestMode = true for fast setup
       await TripService().startTripTracking(
         tripId: trip!.tripId,
         thresholds: thresholds,
-        // testMode: true,
+        testMode: true,
       );
       print('Trip started — watch console for breach traces');
 

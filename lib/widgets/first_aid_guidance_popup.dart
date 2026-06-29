@@ -86,6 +86,7 @@ Future<String> getGuidanceString(VitalReadings? readings) async {
     traceLog('guidance returned', guidances);
 
     if (guidances.isEmpty) {
+      traceLog("loading guidance returned empty");
       return 'No specific guidance available. Pull over and rest.';
     }
 
@@ -105,7 +106,7 @@ Future<String> getGuidanceString(VitalReadings? readings) async {
     return guidances.first.severityAction;
   } catch (e) {
     traceLog('guidance error', e);
-    return 'Unable to load guidance. Pull over safely and call emergency services.';
+    return 'Pull over safely and call emergency services.';
   }
 }
 // Future<String> getGuidanceString(VitalReadings? readings) async {

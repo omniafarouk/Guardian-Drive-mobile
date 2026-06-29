@@ -9,6 +9,7 @@ import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
 import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
+import 'package:guardian_drive_mobile/utils/readings_status_colors.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/custom_card.dart';
@@ -474,7 +475,7 @@ class _OngoingTripState extends State<OngoingTrip> {
                                         Text(
                                           '$temp °C',
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: getTempStatusColor(temp),
                                             fontWeight: FontWeight.w400,
                                             fontSize: 14,
                                           ),
@@ -488,8 +489,8 @@ class _OngoingTripState extends State<OngoingTrip> {
                           },
                         ),
                         ValueListenableBuilder(
-                          valueListenable: BandBleService.instance.spO2Notifier,
-                          builder: (context, spO2, child) {
+                          valueListenable: BandBleService.instance.bpmNotifier,
+                          builder: (context, bpm, child) {
                             return CustomCard(
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(
@@ -501,14 +502,15 @@ class _OngoingTripState extends State<OngoingTrip> {
                                 child: Row(
                                   children: [
                                     const Icon(
-                                      Icons.bloodtype,
-                                      color: Colors.blue,
+                                      Icons.monitor_heart_rounded,
+                                      color: Colors.redAccent,
                                       size: 38,
                                     ),
+                                    SizedBox(width: 5),
                                     Column(
                                       children: [
                                         const Text(
-                                          'SpO₂',
+                                          'BPM',
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w400,
@@ -516,9 +518,9 @@ class _OngoingTripState extends State<OngoingTrip> {
                                           ),
                                         ),
                                         Text(
-                                          '$spO2 %',
+                                          '$bpm',
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: getBPMStatusColor(bpm),
                                             fontWeight: FontWeight.w400,
                                             fontSize: 14,
                                           ),
@@ -535,9 +537,9 @@ class _OngoingTripState extends State<OngoingTrip> {
                     ),
                     SizedBox(height: 10),
                     ValueListenableBuilder(
-                      valueListenable: BandBleService.instance.bpmNotifier,
-                      builder: (context, bpm, child) {
-                        double percent = bpm / 150;
+                      valueListenable: BandBleService.instance.spO2Notifier,
+                      builder: (context, spO2, child) {
+                        double percent = spO2 / 150;
                         return CircularPercentIndicator(
                           radius: 46,
                           lineWidth: 8,
@@ -549,19 +551,18 @@ class _OngoingTripState extends State<OngoingTrip> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "$bpm",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              Text(
-                                "BPM",
+                                "SpO₂",
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                "$spO2",
+                                style: TextStyle(
+                                  color: getSpOStatusColor(spO2),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
@@ -573,9 +574,10 @@ class _OngoingTripState extends State<OngoingTrip> {
                     SizedBox(height: 20),
                     // stop trip button
                     ValueListenableBuilder(
-                      valueListenable: BandBleService.instance.statusNotifier,
+                      valueListenable: TripService().tripIsActiveNotifier,
                       builder: (context, status, child) {
-                        bool activeTripExists = TripService().isTripActive;
+                        bool activeTripExists =
+                            TripService().tripIsActiveNotifier.value;
                         return ElevatedButton(
                           onPressed: activeTripExists
                               ? () {

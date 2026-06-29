@@ -32,6 +32,7 @@ class _AlertDetailState extends State<AlertDetail> {
     }
   }
 
+  /*
   Color getHeartStatusColor(AlertDetails alert) {
     switch (alert.healthEvent?.heartRateStatus) {
       case HealthStatus.Critical:
@@ -53,7 +54,7 @@ class _AlertDetailState extends State<AlertDetail> {
         return Colors.brown;
     }
   }
-
+*/
   Future<void> loadAddress(AlertDetails alert) async {
     address = await getLocationName(
       alert.alertSummary.triggeredLocation.latitude,
@@ -87,6 +88,9 @@ class _AlertDetailState extends State<AlertDetail> {
           return const Center(child: Text("Alert not found"));
         }
         final alert = snapshot.data!;
+        print(alert.healthEvent?.tempStatus);
+        print(alert.healthEvent?.heartRateStatus);
+        
         loadAddress(alert);
         incidentTimeline = buildIncidentTimeline(alert);
         return Scaffold(
@@ -309,9 +313,18 @@ class _AlertDetailState extends State<AlertDetail> {
                                             ),
                                           ),
                                           Text(
-                                            '${alert.healthEvent?.heartRateStatus.name}',
+                                            alert
+                                                    .healthEvent
+                                                    ?.heartRateStatus
+                                                    .displayName ??
+                                                'Normal',
                                             style: TextStyle(
-                                              color: getHeartStatusColor(alert),
+                                              color:
+                                                  alert
+                                                      .healthEvent
+                                                      ?.heartRateStatus
+                                                      .color ??
+                                                  Colors.green,
                                               fontSize: 16,
                                             ),
                                           ),
@@ -362,9 +375,9 @@ class _AlertDetailState extends State<AlertDetail> {
                                         ),
                                       ),
                                       Text(
-                                        '${alert.healthEvent?.tempStatus.name}',
+                                        alert.healthEvent?.tempStatus.displayName ?? 'Normal',
                                         style: TextStyle(
-                                          color: getHTempStatusColor(alert),
+                                          color: alert.healthEvent?.tempStatus.color ?? Colors.green,
                                           fontSize: 16,
                                         ),
                                       ),

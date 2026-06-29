@@ -1,10 +1,13 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-enum HealthStatus { Mild, Moderate, Critical, Normal }
+// enum HealthStatus { Mild, Moderate, Critical, Normal }
 
-HealthStatus parseHealthStatus(String? value) {
-  return HealthStatus.values.firstWhere(
+import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
+
+ConditionSeverity parseHealthStatus(String? value) {
+  if (value == null) return ConditionSeverity.NORMAL;
+  return ConditionSeverity.values.firstWhere(
     (e) => e.name.toUpperCase() == value.toString().trim().toUpperCase(),
-    orElse: () => HealthStatus.Normal,
+    orElse: () => ConditionSeverity.NORMAL,
   );
 }
 
@@ -12,9 +15,9 @@ class HealthEvent {
   double heartRate;
   double bodyTemp;
   double spo2;
-  HealthStatus heartRateStatus;
-  HealthStatus tempStatus;
-  HealthStatus spo2Status;
+  ConditionSeverity heartRateStatus;
+  ConditionSeverity tempStatus;
+  ConditionSeverity spo2Status;
   HealthEvent({
     required this.heartRate,
     required this.bodyTemp,
