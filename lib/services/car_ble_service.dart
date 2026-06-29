@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/ble_helper.dart';
 import '../models/enums.dart';
 
@@ -90,6 +91,35 @@ class CarBleService {
         });
   }
 
+  Future<bool> stopCar() async {
+    if (status == BleDeviceStatus.ready) {
+      await _sendCommand("T");
+
+      // the car will disconnect itself after receiving T
+      status = BleDeviceStatus.disconnected;
+      return true;
+    }
+    // Wait for automatic reconnection
+    if (status == BleDeviceStatus.connecting) {
+      try {
+        await statusNotifier
+            .waitForValue(BleDeviceStatus.ready)
+            .timeout(const Duration(seconds: 30));
+
+        await _sendCommand("T");
+        return true;
+      } catch (_) {
+        // Timed out
+      }
+    }
+
+    messagesController.add(
+      "Car disconnected. Unable to notify the vehicle that the trip ended.",
+    );
+
+    return false;
+  }
+
   /// Call this when driver vitals cross a critical threshold.
   /// Sends "E" (Emergency stop) to the car.
   Future<void> sendSevereCaseOccurred() async {
@@ -106,6 +136,7 @@ class CarBleService {
     print("[CAR] SEVERE CASE — sending E to car");
     await _sendCommand("E");
     messagesController.add("Stopping the car in progress..");
+    await BandBleService.instance.stopBand();
   }
 
   // OLD VERSION OF PREDRIVE CHECK PASSED
@@ -276,7 +307,7 @@ class CarBleService {
     }
 
     _reconnectAttempts++;
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 9), () {
       print("[CAR] Reconnect attempt $_reconnectAttempts");
       _connect(_deviceId!);
     });

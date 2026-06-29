@@ -7,7 +7,6 @@ import 'package:guardian_drive_mobile/services/band_service.dart';
 import 'package:guardian_drive_mobile/services/ble_helper.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/storage_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../models/enums.dart';
 
 class BandBleService {
@@ -109,6 +108,7 @@ class BandBleService {
     }
     status = BleDeviceStatus.connecting;
     bandDeviceId ??= await StorageService.getDeviceId();
+    print("BAND Device Id: $bandDeviceId");
     if (bandDeviceId == null) {
       messagesController.add("No Band is assigned.");
       print("No band assigned for driver");
@@ -209,6 +209,35 @@ class BandBleService {
         );
   }
 
+  Future<bool> stopBand() async {
+    if (status == BleDeviceStatus.ready) {
+      await sendCommand("T");
+
+      // the car will disconnect itself after receiving T
+      status = BleDeviceStatus.disconnected;
+      return true;
+    }
+    // Wait for automatic reconnection
+    if (status == BleDeviceStatus.connecting) {
+      try {
+        await statusNotifier
+            .waitForValue(BleDeviceStatus.ready)
+            .timeout(const Duration(seconds: 30));
+
+        await sendCommand("T");
+        return true;
+      } catch (_) {
+        // Timed out
+      }
+    }
+
+    messagesController.add(
+      "Car disconnected. Unable to notify the vehicle that the trip ended.",
+    );
+
+    return false;
+  }
+
   void _waitForCarThenSendR() {
     _carWaitListener = () async {
       final carStatus = CarBleService.instance.status;
@@ -216,9 +245,9 @@ class BandBleService {
         CarBleService.instance.statusNotifier.removeListener(_carWaitListener!);
         _carWaitListener = null;
         status = BleDeviceStatus.ready;
-        print("Car connected — sent R to band");
         _readyForReadings = true;
         await sendCommand("R");
+        print("Car connected — sent R to band");
       }
     };
     CarBleService.instance.statusNotifier.addListener(_carWaitListener!);
@@ -342,6 +371,11 @@ class BandBleService {
               temp: temp.toDouble(),
               timestamp: DateTime.now(),
             ),
+          );
+          BandService.sendVitals(
+            heartRate: bpm.toDouble(),
+            spo2: spo2.toDouble(),
+            temp: temp.toDouble(),
           );
 
           print("BATT: ${data['BATT']}");

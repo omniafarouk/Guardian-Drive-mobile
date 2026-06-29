@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
 import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
@@ -82,11 +83,14 @@ class _OngoingTripState extends State<OngoingTrip> {
   }
 
   void endTrip() async {
+    print("Ending trip..");
     await TripService().patchTrip(
       TripService().activeTripId!,
       TripStatus.COMPLETED,
     );
     TripService().endTripTracking();
+    BandBleService.instance.stopBand();
+    CarBleService.instance.stopCar();
   }
 
   int getClosestRouteIndex(LatLng current, List<LatLng> route) {
@@ -573,37 +577,60 @@ class _OngoingTripState extends State<OngoingTrip> {
 
                     SizedBox(height: 20),
                     // stop trip button
-                    ValueListenableBuilder(
-                      valueListenable: TripService().tripIsActiveNotifier,
-                      builder: (context, status, child) {
-                        bool activeTripExists =
-                            TripService().tripIsActiveNotifier.value;
-                        return ElevatedButton(
-                          onPressed: activeTripExists
-                              ? () {
-                                  endTrip();
-                                  Navigator.pop(context);
-                                }
-                              : null, // null disables the button
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: activeTripExists
-                                ? Colors.redAccent
-                                : Colors.grey,
-                            minimumSize: Size(double.infinity, 50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                    Align(
+                      alignment: Alignment.center,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          // endTrip();
+                          // Navigator.pop(context);
+                          final shouldEndTrip = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('End Trip'),
+                              content: const Text(
+                                'Are you sure you want to end the trip?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context, false); // No
+                                  },
+                                  child: const Text('No'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context, true); // Yes
+                                  },
+                                  child: const Text('Yes'),
+                                ),
+                              ],
                             ),
+                          );
+
+                          if (shouldEndTrip == true) {
+                            endTrip();
+                            Navigator.pop(context); // Close the current page
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 35,
+                            vertical: 20,
                           ),
-                          child: Text(
-                            'End Trip',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
                           ),
-                        );
-                      },
+                        ),
+                        child: Text(
+                          'End Trip',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

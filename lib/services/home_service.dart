@@ -23,6 +23,7 @@ class HomeService {
   }
 
   static Future<int> getDeviceId() async {
+    print("getting device id..");
     try {
       final user = await UserService.getUserById();
 
