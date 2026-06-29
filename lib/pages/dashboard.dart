@@ -310,7 +310,7 @@ class _DashboardState extends State<Dashboard> {
       case BleDeviceStatus.connected:
         return "Running precheck..";
       case BleDeviceStatus.precheckFailed:
-        return "Precheck Failed, Please Contact Your fleet manager.";
+        return "Precheck Failed,\nPlease Contact Your fleet manager.";
       case BleDeviceStatus.ready:
         return "Connected";
       default:
