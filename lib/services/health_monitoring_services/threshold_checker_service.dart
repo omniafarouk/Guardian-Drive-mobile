@@ -59,7 +59,7 @@ class ThresholdChecker {
     required double min,
     required double max,
     required double avg,
-    required double warningBuffer, // ← add this
+    required double warningBuffer,
     required ConditionType lowType,
     ConditionType? highType,
     required List<ConditionBreach> breaches,

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
 import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
@@ -17,6 +16,9 @@ import 'package:guardian_drive_mobile/widgets/future_table_row.dart';
 import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+
+// import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 class OngoingTrip extends StatefulWidget {
   const OngoingTrip({super.key});
@@ -261,7 +263,7 @@ class _OngoingTripState extends State<OngoingTrip> {
     }
     return Scaffold(
       appBar: CustomAppBar(title: "Ongoing Trip"),
-      floatingActionButton:  ValueListenableBuilder<bool>(
+      floatingActionButton: ValueListenableBuilder<bool>(
         valueListenable: TripService.instance.tripIsActiveNotifier,
         builder: (context, tripIsActive, child) {
           return tripIsActive
@@ -373,7 +375,7 @@ class _OngoingTripState extends State<OngoingTrip> {
                                         : '${remainingDistance!.toStringAsFixed(2)} m',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 20,
+                                      fontSize: 10,
                                     ),
                                   ),
                           ],
@@ -531,7 +533,7 @@ class _OngoingTripState extends State<OngoingTrip> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 10,),
+                    SizedBox(height: 10),
                     ValueListenableBuilder(
                       valueListenable: BandBleService.instance.bpmNotifier,
                       builder: (context, bpm, child) {
@@ -569,28 +571,37 @@ class _OngoingTripState extends State<OngoingTrip> {
                     ),
 
                     SizedBox(height: 20),
-
                     // stop trip button
-                    ElevatedButton(
-                      onPressed: () {
-                        endTrip();
-                        Navigator.pop(context);
+                    ValueListenableBuilder(
+                      valueListenable: BandBleService.instance.statusNotifier,
+                      builder: (context, status, child) {
+                        bool activeTripExists = TripService().isTripActive;
+                        return ElevatedButton(
+                          onPressed: activeTripExists
+                              ? () {
+                                  endTrip();
+                                  Navigator.pop(context);
+                                }
+                              : null, // null disables the button
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: activeTripExists
+                                ? Colors.redAccent
+                                : Colors.grey,
+                            minimumSize: Size(double.infinity, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'End Trip',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        minimumSize: Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'End Trip',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
                   ],
                 ),

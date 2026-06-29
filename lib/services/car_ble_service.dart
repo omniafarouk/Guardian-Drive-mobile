@@ -108,10 +108,7 @@ class CarBleService {
 
   // OLD VERSION OF PREDRIVE CHECK PASSED
   /*
-  // OLD VERSION OF PREDRIVE CHECK PASSED
-  /*
   Future<void> sendPredriveCheckPassed() async {
-    if (status != BleDeviceStatus.ready) {
     if (status != BleDeviceStatus.ready) {
       print("[CAR] cannot send predrive check success — not connected");
       messagesController.add(
@@ -153,7 +150,6 @@ class CarBleService {
     messagesController.add("PREDRIVE_CAR_DISCONNECTED");
     return false;
   }
-
 
   Future<void> _connect(String deviceId) async {
     _connectionSubscription?.cancel();
@@ -304,6 +300,7 @@ extension ValueNotifierWait on ValueNotifier<BleDeviceStatus> {
         completer.complete();
       }
     }
+
     addListener(listener);
     // check immediately in case already at target
     if (value == target) {

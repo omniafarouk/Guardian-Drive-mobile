@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:guardian_drive_mobile/main.dart';
 import 'package:guardian_drive_mobile/models/alert_request.dart';
@@ -245,7 +244,13 @@ void showAlertSuccessfulPopUp(BuildContext context, VitalReadings reading) {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
+          onPressed: () async {
+            Navigator.pop(dialogContext);
+            final rootContext = navigatorKey.currentContext;
+            if (rootContext == null) return;
+            if (!rootContext.mounted) return;
+            Navigator.pushReplacementNamed(rootContext, '/home');
+          },
           child: const Text('OK', style: TextStyle(color: Colors.white54)),
         ),
         ElevatedButton(
@@ -262,6 +267,8 @@ void showAlertSuccessfulPopUp(BuildContext context, VitalReadings reading) {
             final rootContext = navigatorKey.currentContext;
             if (rootContext == null) return;
             await showFirstAidGuidanceDialog(reading, rootContext);
+            if (!rootContext.mounted) return;
+            Navigator.pushReplacementNamed(rootContext, '/home');
           },
           child: const Text(
             'First Aid Guidance',

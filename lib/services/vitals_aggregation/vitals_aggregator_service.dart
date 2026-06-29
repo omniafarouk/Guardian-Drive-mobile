@@ -24,7 +24,6 @@ class VitalsAggregator {
     _aggregator.start();
   }
 
-  // TODO: Called on every Bluetooth reading (every 10s)
   void onReading(VitalReadings r) {
     traceLog('Raw reading received', 'HR=${r.heartRate}');
     _aggregator.addReading(r);
