@@ -2,8 +2,8 @@
 
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
-// import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
+// import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 enum PreDriveStatus { passed, blocked, cancelled }
 

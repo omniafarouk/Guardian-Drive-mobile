@@ -6,7 +6,7 @@ import 'storage_service.dart';
 
 class ApiClient {
   // static const String baseUrl = 'http://localhost:3000';
-  static const String baseUrl = "http://10.246.45.175:3000";
+  static const String baseUrl = "http://192.168.0.125:3000";
 
   // Builds headers with token automatically
   static Future<Map<String, String>> headers() async {

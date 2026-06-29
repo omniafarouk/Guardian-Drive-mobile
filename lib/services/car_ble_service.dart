@@ -106,8 +106,10 @@ class CarBleService {
     messagesController.add("Stopping the car in progress..");
   }
 
+  // OLD VERSION OF PREDRIVE CHECK PASSED
+  /*
   Future<void> sendPredriveCheckPassed() async {
-    if (status != BleDeviceStatus.connected) {
+    if (status != BleDeviceStatus.ready) {
       print("[CAR] cannot send predrive check success — not connected");
       messagesController.add(
         "Car Connection lost. Predrive check sending failed.",
@@ -119,6 +121,36 @@ class CarBleService {
     await _sendCommand("P");
     // messagesController.add("PASS_CAR_CHECK");
   }
+  */
+  Future<bool> sendPredriveCheckPassed() async {
+    // already ready — send immediately
+    if (status == BleDeviceStatus.ready) {
+      print("[CAR] Sending predrive check passed");
+      await _sendCommand("P");
+      return true;
+    }
+
+    // still reconnecting — wait up to 30s for it to come back
+    if (status == BleDeviceStatus.disconnected &&
+        _reconnectAttempts < maxReconnectAttempts) {
+      print("[CAR] Car reconnecting, waiting to send P...");
+      try {
+        await statusNotifier
+            .waitForValue(BleDeviceStatus.ready) // see helper below
+            .timeout(const Duration(seconds: 30));
+        await _sendCommand("P");
+        return true;
+      } catch (_) {
+        // timed out or failed
+      }
+    }
+
+    // max attempts exceeded or timeout — can't send
+    print("[CAR] Cannot send predrive check — car unreachable");
+    messagesController.add("PREDRIVE_CAR_DISCONNECTED");
+    return false;
+  }
+
 
   Future<void> _connect(String deviceId) async {
     _connectionSubscription?.cancel();
@@ -257,5 +289,24 @@ class CarBleService {
     _scanSubscription?.cancel();
     _connectionSubscription?.cancel();
     _notifySubscription?.cancel();
+  }
+}
+
+extension ValueNotifierWait on ValueNotifier<BleDeviceStatus> {
+  Future<void> waitForValue(BleDeviceStatus target) {
+    final completer = Completer<void>();
+    void listener() {
+      if (value == target) {
+        removeListener(listener);
+        completer.complete();
+      }
+    }
+    addListener(listener);
+    // check immediately in case already at target
+    if (value == target) {
+      removeListener(listener);
+      completer.complete();
+    }
+    return completer.future;
   }
 }

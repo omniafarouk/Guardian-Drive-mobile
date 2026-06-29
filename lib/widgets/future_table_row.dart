@@ -23,7 +23,7 @@ TableRow buildRowFuture(
           return Text(
             snapshot.data ?? "Unknown",
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 16,
               fontWeight: FontWeight.w500,
               color: Colors.white,
             ),

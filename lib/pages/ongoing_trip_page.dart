@@ -4,14 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
+import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
 import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
 import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
+import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
+import 'package:guardian_drive_mobile/widgets/custom_card.dart';
 import 'package:guardian_drive_mobile/widgets/future_table_row.dart';
+import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 
 class OngoingTrip extends StatefulWidget {
   const OngoingTrip({super.key});
@@ -256,6 +261,27 @@ class _OngoingTripState extends State<OngoingTrip> {
     }
     return Scaffold(
       appBar: CustomAppBar(title: "Ongoing Trip"),
+      floatingActionButton:  ValueListenableBuilder<bool>(
+        valueListenable: TripService.instance.tripIsActiveNotifier,
+        builder: (context, tripIsActive, child) {
+          return tripIsActive
+              ? FloatingActionButton(
+                  backgroundColor: Colors.red,
+                  onPressed: () async {
+                    traceLog('SOS TRIGGERED');
+                    // await showConfirmSOSDialog(context, _latestReading);
+                  },
+                  child: const Text(
+                    'SOS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(); // renders nothing when no trip
+        },
+      ),
       body: Stack(
         children: [
           FlutterMap(
@@ -314,67 +340,262 @@ class _OngoingTripState extends State<OngoingTrip> {
           ),
           Positioned(
             top: 30,
-            left: 135,
-            child: Card(
-              color: Color.fromARGB(255, 1, 21, 51),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(30)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: FractionallySizedBox(
+                widthFactor: 0.8,
+                child: Card(
+                  color: Color.fromARGB(255, 1, 21, 51),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(30)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18.0),
+                    child: Row(
                       children: [
-                        remainingDistance == null
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                remainingDistance! > 1000
-                                    ? '${(remainingDistance! / 10000).toStringAsFixed(2)} Km'
-                                    : '${remainingDistance!.toStringAsFixed(2)} m',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                ),
-                              ),
-                      ],
-                    ),
-                    SizedBox(width: 10),
-                    Container(color: Colors.grey, width: 3, height: 90),
-                    SizedBox(width: 10),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            remainingDistance == null
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    remainingDistance! > 1000
+                                        ? '${(remainingDistance! / 10000).toStringAsFixed(2)} Km'
+                                        : '${remainingDistance!.toStringAsFixed(2)} m',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                          ],
+                        ),
+                        SizedBox(width: 10),
+                        Container(color: Colors.grey, width: 3, height: 90),
+                        SizedBox(width: 10),
 
-                    Table(
-                      columnWidths: const {
-                        0: IntrinsicColumnWidth(), // icon column (tight)
-                        1: FixedColumnWidth(20),
-                        2: IntrinsicColumnWidth(), // text column (tight)
-                      },
-                      children: [
-                        buildRowFuture(
-                          Icons.radio_button_on_sharp,
-                          Colors.lightBlueAccent,
-                          startLocationName,
-                        ),
-                        buildRowFuture(
-                          Icons.radio_button_on_sharp,
-                          Colors.greenAccent,
-                          destLocationName,
+                        Table(
+                          columnWidths: const {
+                            0: IntrinsicColumnWidth(), // icon column (tight)
+                            1: FixedColumnWidth(20),
+                            2: IntrinsicColumnWidth(), // text column (tight)
+                          },
+                          children: [
+                            buildRowFuture(
+                              Icons.radio_button_on_sharp,
+                              Colors.lightBlueAccent,
+                              startLocationName,
+                            ),
+                            buildRowFuture(
+                              Icons.radio_button_on_sharp,
+                              Colors.greenAccent,
+                              destLocationName,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
+          ),
+          // SLIDER
+          DraggableScrollableSheet(
+            initialChildSize: 0.18, // collapsed height
+            minChildSize: 0.18,
+            maxChildSize: 0.5, // how far it can expand
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Color.fromARGB(255, 1, 21, 51),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: ListView(
+                  controller: scrollController,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  children: [
+                    // drag handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white38,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+
+                    // vitals row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ValueListenableBuilder(
+                          valueListenable: BandBleService.instance.tempNotifier,
+                          builder: (context, temp, child) {
+                            return CustomCard(
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  10,
+                                  16,
+                                  10,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.thermostat_outlined,
+                                      color: Colors.orangeAccent,
+                                      size: 38,
+                                    ),
+                                    Column(
+                                      children: [
+                                        const Text(
+                                          'Temperature',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Text(
+                                          '$temp °C',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        ValueListenableBuilder(
+                          valueListenable: BandBleService.instance.spO2Notifier,
+                          builder: (context, spO2, child) {
+                            return CustomCard(
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  10,
+                                  16,
+                                  10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.bloodtype,
+                                      color: Colors.blue,
+                                      size: 38,
+                                    ),
+                                    Column(
+                                      children: [
+                                        const Text(
+                                          'SpO₂',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Text(
+                                          '$spO2 %',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10,),
+                    ValueListenableBuilder(
+                      valueListenable: BandBleService.instance.bpmNotifier,
+                      builder: (context, bpm, child) {
+                        double percent = bpm / 150;
+                        return CircularPercentIndicator(
+                          radius: 46,
+                          lineWidth: 8,
+                          percent: percent.clamp(0.0, 1.0),
+                          animation: true,
+                          progressColor: Colors.white,
+                          backgroundColor: Colors.white24,
+                          center: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "$bpm",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              Text(
+                                "BPM",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+
+                    SizedBox(height: 20),
+
+                    // stop trip button
+                    ElevatedButton(
+                      onPressed: () {
+                        endTrip();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        minimumSize: Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'End Trip',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),

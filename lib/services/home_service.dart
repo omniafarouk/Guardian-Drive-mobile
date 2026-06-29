@@ -29,7 +29,7 @@ class HomeService {
       final deviceId = user.wearableBand ?? -1;
 
       await StorageService.saveDeviceId(deviceId);
-
+      print("Got device id: $deviceId");
       return deviceId;
     } catch (error) {
       print("Error getting device id: $error");

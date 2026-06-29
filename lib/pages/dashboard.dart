@@ -29,8 +29,8 @@ import 'package:guardian_drive_mobile/services/route_service.dart'
     as routeservice;
 import 'package:intl/intl.dart';
 
-import 'package:guardian_drive_mobile/services/band_ble_service.dart';
-// import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
+// import 'package:guardian_drive_mobile/services/band_ble_service.dart';
+import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 class Dashboard extends StatefulWidget {
   @override
@@ -308,7 +308,7 @@ class _DashboardState extends State<Dashboard> {
   getBandConnectionStatus() {
     switch (BandBleService.instance.status) {
       case BleDeviceStatus.disconnected:
-        return "No Band";
+        return "No band.";
       case BleDeviceStatus.connecting:
         return "Connecting..";
       case BleDeviceStatus.connected:
@@ -316,7 +316,7 @@ class _DashboardState extends State<Dashboard> {
       case BleDeviceStatus.precheckPassed:
         return "Waiting for car..";
       case BleDeviceStatus.precheckFailed:
-        return "Precheck Failed, Please Contact Your fleet manager.";
+        return "Precheck Failed,\nPlease Contact Your fleet manager.";
       case BleDeviceStatus.ready:
         return "Connected";
     }
@@ -456,14 +456,51 @@ class _DashboardState extends State<Dashboard> {
                 ),
 
                 SizedBox(height: 20),
-                Text(
-                  "Band Status",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                ValueListenableBuilder(
+                  valueListenable: BandBleService.instance.statusNotifier,
+                  builder: (context, status, child) {
+                    final bandConnected =
+                        status == BleDeviceStatus.connected ||
+                        status == BleDeviceStatus.ready ||
+                        status == BleDeviceStatus.precheckPassed;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Band Status",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        if (!bandConnected)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 0, 3),
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.bluetooth, size: 14),
+                              label: const Text(
+                                'Connect',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              onPressed: () {
+                                BandBleService.instance.scanAndConnect();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
+                SizedBox(height: 5),
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -473,195 +510,238 @@ class _DashboardState extends State<Dashboard> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      ValueListenableBuilder(
-                        valueListenable: BandBleService.instance.statusNotifier,
-                        builder: (context, status, child) {
-                          final bandConnected =
-                              status == BleDeviceStatus.connected ||
-                              status == BleDeviceStatus.ready ||
-                              status == BleDeviceStatus.precheckPassed;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    getBandConnectionStatus(),
-                                    style: TextStyle(
-                                      color: getStatusColor(status),
-                                      // getStatusColor(bpm),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: ValueListenableBuilder(
+                                    valueListenable:
+                                        BandBleService.instance.statusNotifier,
+                                    builder: (context, status, child) {
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                getBandConnectionStatus(),
+                                                style: TextStyle(
+                                                  color: getStatusColor(status),
+                                                  // getStatusColor(bpm),
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                ),
+                                                softWrap:
+                                                    true, // ← allow wrapping
+                                                overflow: TextOverflow.visible,
+                                              ),
+                                            ],
+                                          ),
+
+                                          SizedBox(height: 10),
+                                          ValueListenableBuilder<int>(
+                                            valueListenable: BandBleService
+                                                .instance
+                                                .battNotifier,
+                                            builder: (context, batt, _) {
+                                              return Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 10,
+                                                  vertical: 5,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: getBatteryStatusColor(
+                                                    batt,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                child: Text(
+                                                  "$batt%",
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                                CircularPercentIndicator(
+                                  radius: 46,
+                                  lineWidth: 8,
+                                  percent: percent.clamp(0.0, 1.0),
+                                  animation: true,
+                                  progressColor: getBPMStatusColor(),
+                                  backgroundColor: Colors.white24,
+                                  center: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        "$bpm",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                      Text(
+                                        "BPM",
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                CustomCard(
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      10,
+                                      16,
+                                      10,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.thermostat_outlined,
+                                          color: Colors.orangeAccent,
+                                          size: 38,
+                                        ),
+                                        Column(
+                                          children: [
+                                            const Text(
+                                              'Temperature',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            Text(
+                                              '$temp °C',
+                                              style: TextStyle(
+                                                color: getTempStatusColor(),
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  if (!bandConnected)
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        20,
-                                        0,
-                                        0,
-                                        0,
-                                      ),
-                                      child: ElevatedButton.icon(
-                                        icon: const Icon(Icons.bluetooth),
-                                        label: const Text('Connect to band'),
+                                ),
 
-                                        onPressed: () {
-                                          BandBleService.instance
-                                              .scanAndConnect();
-                                        },
-                                      ),
+                                CustomCard(
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      10,
+                                      16,
+                                      10,
                                     ),
-                                ],
-                              ),
-
-                              SizedBox(height: 10),
-                              ValueListenableBuilder<int>(
-                                valueListenable:
-                                    BandBleService.instance.battNotifier,
-                                builder: (context, batt, _) {
-                                  return Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.bloodtype,
+                                          color: Colors.blue,
+                                          size: 38,
+                                        ),
+                                        Column(
+                                          children: [
+                                            const Text(
+                                              'SpO₂',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            Text(
+                                              '$spO2 %',
+                                              style: TextStyle(
+                                                color: getSpOStatusColor(),
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: getBatteryStatusColor(batt),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      "$batt%",
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-
-                      CircularPercentIndicator(
-                        radius: 55,
-                        lineWidth: 8,
-                        percent: percent.clamp(0.0, 1.0),
-                        animation: true,
-                        progressColor: getBPMStatusColor(),
-                        backgroundColor: Colors.white24,
-                        center: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "$bpm",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-
-                            Text(
-                              "BPM",
-                              style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ),
-                      Column(
-                        children: [
-                          CustomCard(
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                10,
-                                16,
-                                10,
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.thermostat_outlined,
-                                    color: Colors.orangeAccent,
-                                    size: 40,
-                                  ),
-                                  Column(
-                                    children: [
-                                      const Text(
-                                        'Temperature',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      Text(
-                                        '$temp °C',
-                                        style: TextStyle(
-                                          color: getTempStatusColor(),
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 10),
-                          CustomCard(
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                10,
-                                16,
-                                10,
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.bloodtype,
-                                    color: Colors.blue,
-                                    size: 40,
-                                  ),
-                                  Column(
-                                    children: [
-                                      const Text(
-                                        'SpO₂',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      Text(
-                                        '$spO2 %',
-                                        style: TextStyle(
-                                          color: getSpOStatusColor(),
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
                 ),
                 SizedBox(height: 30),
-                Text(
-                  "Car Status",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                ValueListenableBuilder(
+                  valueListenable: CarBleService.instance.statusNotifier,
+                  builder: (context, status, child) {
+                    final carConnected =
+                        status == BleDeviceStatus.connected ||
+                        status == BleDeviceStatus.ready;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Car Status",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        if (!carConnected)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 0, 4),
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.bluetooth, size: 14),
+                              label: const Text(
+                                'Connect',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              onPressed: () {
+                                CarBleService.instance.scanAndConnect();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
+                SizedBox(height: 5),
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -674,9 +754,6 @@ class _DashboardState extends State<Dashboard> {
                       ValueListenableBuilder(
                         valueListenable: CarBleService.instance.statusNotifier,
                         builder: (context, status, child) {
-                          final carConnected =
-                              status == BleDeviceStatus.connected ||
-                              status == BleDeviceStatus.ready;
                           return Column(
                             children: [
                               Row(
@@ -686,27 +763,9 @@ class _DashboardState extends State<Dashboard> {
                                     style: TextStyle(
                                       color: getStatusColor(status),
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      fontSize: 12,
                                     ),
                                   ),
-                                  if (!carConnected)
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        20,
-                                        0,
-                                        0,
-                                        0,
-                                      ),
-                                      child: ElevatedButton.icon(
-                                        icon: const Icon(Icons.bluetooth),
-                                        label: const Text('Connect to Car'),
-
-                                        onPressed: () {
-                                          CarBleService.instance
-                                              .scanAndConnect();
-                                        },
-                                      ),
-                                    ),
                                 ],
                               ),
                             ],
@@ -716,7 +775,7 @@ class _DashboardState extends State<Dashboard> {
                     ],
                   ),
                 ),
-
+                SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -745,8 +804,19 @@ class _DashboardState extends State<Dashboard> {
                                 },
                               ),
                             },
-                            label: Text('Go to map'),
-                            icon: Icon(Icons.arrow_forward_rounded),
+                            label: Text(
+                              'Go to map',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            icon: Icon(Icons.arrow_forward_rounded, size: 14),
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                           ),
                         ],
                       ),

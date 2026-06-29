@@ -88,6 +88,7 @@ class BandBleService {
     if (changed || timedOut) {
       _lastSavedBatt = newBatt;
       _lastBattWrite = now;
+      print("Updating battery in database");
       BandService.patchBand(
         bandDeviceId!,
         batteryLevel: newBatt,
