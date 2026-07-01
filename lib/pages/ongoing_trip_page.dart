@@ -83,7 +83,7 @@ class _OngoingTripState extends State<OngoingTrip> {
     }
   }
 
-  void endTrip() async {
+  Future<void> endTrip() async {
     print("Ending trip..");
     TripMonitoringService.instance.stopMonitoring();
     await TripService().patchTrip(
@@ -601,13 +601,19 @@ class _OngoingTripState extends State<OngoingTrip> {
                                   child: const Text('No'),
                                 ),
                                 ElevatedButton(
+                                  // onPressed: () {
+                                  //   //Navigator.pop(context, true); // Yes
+                                  //   Navigator.pushNamedAndRemoveUntil(
+                                  //     context,
+                                  //     '/home',
+                                  //     (route) => false,
+                                  //   );
+                                  // },
                                   onPressed: () {
-                                    //Navigator.pop(context, true); // Yes
-                                    Navigator.pushNamedAndRemoveUntil(
+                                    Navigator.pop(
                                       context,
-                                      '/home',
-                                      (route) => false,
-                                    );
+                                      true,
+                                    ); // just confirm, don't navigate here
                                   },
                                   child: const Text('Yes'),
                                 ),
@@ -616,8 +622,14 @@ class _OngoingTripState extends State<OngoingTrip> {
                           );
 
                           if (shouldEndTrip == true) {
-                            endTrip();
-                            Navigator.pop(context); // Close the current page
+                            await endTrip();
+                            // Navigator.pop(context); // Close the current page
+                            if (!mounted) return;
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/home',
+                              (route) => false,
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(

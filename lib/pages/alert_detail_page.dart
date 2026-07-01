@@ -5,7 +5,9 @@ import 'package:guardian_drive_mobile/models/alert_details.dart';
 import 'package:guardian_drive_mobile/models/health_event.dart';
 import 'package:guardian_drive_mobile/services/alert_service.dart';
 import 'package:guardian_drive_mobile/utils/location_helper.dart';
+import 'package:guardian_drive_mobile/utils/readings_status_colors.dart';
 import 'package:guardian_drive_mobile/widgets/background.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 
 import '../models/incident.dart';
 import '../widgets/custom_card.dart';
@@ -75,6 +77,7 @@ class _AlertDetailState extends State<AlertDetail> {
   Widget build(BuildContext context) {
     final int alertId = ModalRoute.of(context)!.settings.arguments as int;
     alertFuture = AlertApiService.getAlertById(alertId);
+    double percent;
     return FutureBuilder<AlertDetails?>(
       future: alertFuture,
       builder: (context, snapshot) {
@@ -90,7 +93,8 @@ class _AlertDetailState extends State<AlertDetail> {
         final alert = snapshot.data!;
         print(alert.healthEvent?.tempStatus);
         print(alert.healthEvent?.heartRateStatus);
-        
+        double percent = alert.healthEvent!.spo2 / 150;
+
         loadAddress(alert);
         incidentTimeline = buildIncidentTimeline(alert);
         return Scaffold(
@@ -189,7 +193,6 @@ class _AlertDetailState extends State<AlertDetail> {
                                   ),
                                 ],
                               ),
-
                               // Timeline Shape
                               Row(
                                 children: [
@@ -313,18 +316,18 @@ class _AlertDetailState extends State<AlertDetail> {
                                             ),
                                           ),
                                           Text(
-                                            alert
-                                                    .healthEvent
-                                                    ?.heartRateStatus
-                                                    .displayName ??
-                                                'Normal',
+                                            // alert
+                                            //         .healthEvent
+                                            //         ?.heartRateStatus
+                                            //         .displayName ??
+                                                'Critical',
                                             style: TextStyle(
                                               color:
-                                                  alert
-                                                      .healthEvent
-                                                      ?.heartRateStatus
-                                                      .color ??
-                                                  Colors.green,
+                                                  // alert
+                                                  //     .healthEvent
+                                                  //     ?.heartRateStatus
+                                                  //     .color ??
+                                                  Colors.red,
                                               fontSize: 16,
                                             ),
                                           ),
@@ -339,57 +342,129 @@ class _AlertDetailState extends State<AlertDetail> {
                         ),
 
                         // BODY TEMP
-                        Container(
-                          margin: const EdgeInsets.fromLTRB(10, 10, 5, 10),
-                          child: CustomCard(
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                10,
-                                16,
-                                10,
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.thermostat_outlined,
-                                    color: Colors.white,
-                                    size: 40,
-                                  ),
-                                  Column(
-                                    children: [
-                                      const Text(
-                                        'Body Temp:',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 18,
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+                            child: CustomCard(
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  10,
+                                  16,
+                                  10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.thermostat_outlined,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
+                                    Column(
+                                      children: [
+                                        const Text(
+                                          'Body Temp:',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 16,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '${alert.healthEvent?.bodyTemp} °C',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 18,
+                                        Text(
+                                          '${alert.healthEvent?.bodyTemp} °C',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 18,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        alert.healthEvent?.tempStatus.displayName ?? 'Normal',
-                                        style: TextStyle(
-                                          color: alert.healthEvent?.tempStatus.color ?? Colors.green,
-                                          fontSize: 16,
+                                        Text(
+                                          alert
+                                                  .healthEvent
+                                                  ?.tempStatus
+                                                  .displayName ??
+                                              'Normal',
+                                          style: TextStyle(
+                                            color:
+                                                alert
+                                                    .healthEvent
+                                                    ?.tempStatus
+                                                    .color ??
+                                                Colors.green,
+                                            fontSize: 16,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
+
+                    Center(
+                      child: IntrinsicWidth(
+                        child: CustomCard(
+                          Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Center(
+                              child: CircularPercentIndicator(
+                                radius: 46,
+                                lineWidth: 8,
+                                percent: percent.clamp(0.0, 1.0),
+                                animation: true,
+                                progressColor: getSpOStatusColor(
+                                  alert.healthEvent?.spo2 ?? 0,
+                                ),
+                                backgroundColor: Colors.white24,
+                                center: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "SpO₂",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      "${alert.healthEvent?.spo2 ?? ''}",
+                                      style: TextStyle(
+                                        color: getSpOStatusColor(
+                                          alert.healthEvent?.spo2 ?? 0,
+                                        ),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                          alert
+                                                  .healthEvent
+                                                  ?.spo2Status
+                                                  .displayName ??
+                                              'Normal',
+                                          style: TextStyle(
+                                            color:
+                                                alert
+                                                    .healthEvent
+                                                    ?.spo2Status
+                                                    .color ??
+                                                Colors.green,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                     Row(
                       children: [
                         // VEHICLE DETAILS
@@ -439,44 +514,51 @@ class _AlertDetailState extends State<AlertDetail> {
                           ),
                         ),
                         // Incident Context
-                        Container(
-                          margin: const EdgeInsets.fromLTRB(20, 0, 5, 0),
-                          child: CustomCard(
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(15, 10, 15, 5),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Incident Context',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  Container(
-                                    margin: EdgeInsets.all(2),
-                                    width: 120,
-                                    height: 1,
-                                    color: Colors.black,
-                                  ),
-                                  Text(
-                                    'Location:',
-                                    style: TextStyle(color: Colors.grey[800]),
-                                  ),
-                                  Text(address ?? 'loading..'),
-                                  Text(
-                                    'Alert Type:',
-                                    style: TextStyle(color: Colors.grey[800]),
-                                  ),
-                                  Text(alert.alertSummary.type.name),
-                                  Text(
-                                    'Response Time:',
-                                    style: TextStyle(color: Colors.grey[800]),
-                                  ),
-                                  Text(
-                                    alert.status == alertStatus.RESOLVED
-                                        ? getResponseTime(alert).toString()
-                                        : '',
-                                  ),
-                                ],
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(5, 0, 20, 0),
+                            child: CustomCard(
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  15,
+                                  10,
+                                  15,
+                                  5,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Incident Context',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    Container(
+                                      margin: EdgeInsets.all(2),
+                                      width: 120,
+                                      height: 1,
+                                      color: Colors.black,
+                                    ),
+                                    Text(
+                                      'Location:',
+                                      style: TextStyle(color: Colors.grey[800]),
+                                    ),
+                                    Text(address ?? 'loading..'),
+                                    Text(
+                                      'Alert Type:',
+                                      style: TextStyle(color: Colors.grey[800]),
+                                    ),
+                                    Text(alert.alertSummary.type.name, style: TextStyle(fontSize: 11),),
+                                    Text(
+                                      'Response Time:',
+                                      style: TextStyle(color: Colors.grey[800]),
+                                    ),
+                                    Text(
+                                      alert.status == alertStatus.RESOLVED
+                                          ? getResponseTime(alert).toString()
+                                          : '',
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

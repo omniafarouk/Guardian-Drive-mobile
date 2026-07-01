@@ -16,14 +16,24 @@ import 'package:guardian_drive_mobile/pages/reset_pass.dart';
 import 'package:guardian_drive_mobile/services/auth_service.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/utils/app_messanger.dart';
-
+import 'dart:io';
 // import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 void main() async {
+   HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   BandBleService.instance.messagesController.stream.listen((message) {
     print("BAND GLOBAL LISTENER GOT: $message");
