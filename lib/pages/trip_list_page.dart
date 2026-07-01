@@ -74,7 +74,7 @@ class _tripListPageState extends State<tripListPage> {
     return Scaffold(
       backgroundColor: Color(0xFF060B21),
       appBar: CustomAppBar(title: 'Trips'),
-      floatingActionButton: IconButton.filled(
+      /* floatingActionButton: IconButton.filled(
         onPressed: () async {
           final result = await showFilterBottomSheet(context);
 
@@ -100,7 +100,7 @@ class _tripListPageState extends State<tripListPage> {
         },
         icon: Icon(Icons.tune, color: Colors.white, size: 35),
         style: IconButton.styleFrom(backgroundColor: Color(0xFF251C4E)),
-      ),
+      ),*/
       drawer: const SideBarDrawer(),
       body: GradientBackground(
         child: Container(
