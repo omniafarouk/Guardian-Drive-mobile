@@ -266,9 +266,11 @@ void showAlertSuccessfulPopUp(BuildContext context, VitalReadings reading) {
             // ✅ Use navigatorKey — dialogContext is dead after pop
             final rootContext = navigatorKey.currentContext;
             if (rootContext == null) return;
-            await showFirstAidGuidanceDialog(reading, rootContext);
-            // if (!rootContext.mounted) return;
-            // Navigator.pushReplacementNamed(rootContext, '/home');
+            final ok = await showFirstAidGuidanceDialog(reading, rootContext);
+            if (!rootContext.mounted) return;
+            if (ok == null || ok == true) {
+              Navigator.pushReplacementNamed(rootContext, '/home');
+            }
           },
           child: const Text(
             'First Aid Guidance',

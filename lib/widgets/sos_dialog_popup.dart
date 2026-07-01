@@ -106,7 +106,14 @@ Future<void> showConfirmSOSDialog(
               await CarBleService.instance.sendSevereCaseOccurred();
               if (!context.mounted) return;
               traceLog('Show First Aid Guidance before dialog');
-              await showFirstAidGuidanceDialog(latestReading, context);
+              final ok = await showFirstAidGuidanceDialog(
+                latestReading,
+                context,
+              );
+              if (ok == null || ok == true) {
+                if (!context.mounted) return;
+                Navigator.pushReplacementNamed(context, '/home');
+              }
               traceLog('Show First Aid Guidance after dialog');
             } catch (e) {
               traceLog("error in sending SOS : ", e);

@@ -98,6 +98,7 @@ class _HealthWarningDialogState extends State<_HealthWarningDialog> {
             Navigator.pop(context);
             final rootContext = navigatorKey.currentContext;
             if (rootContext == null) return;
+
             await showFirstAidGuidanceDialog(widget.reading, rootContext);
           },
           style: ElevatedButton.styleFrom(
