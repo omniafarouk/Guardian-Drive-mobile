@@ -382,7 +382,7 @@ class _OngoingTripState extends State<OngoingTrip> {
                                         : '${remainingDistance!.toStringAsFixed(2)} m',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 20,
+                                      fontSize: 10,
                                     ),
                                   ),
                           ],
@@ -578,7 +578,6 @@ class _OngoingTripState extends State<OngoingTrip> {
                     ),
 
                     SizedBox(height: 20),
-
                     // stop trip button
                     Align(
                       alignment: Alignment.center,
@@ -596,7 +595,11 @@ class _OngoingTripState extends State<OngoingTrip> {
                               actions: [
                                 TextButton(
                                   onPressed: () {
-                                    Navigator.pop(context, false); // No
+                                    Navigator.pushNamedAndRemoveUntil(
+                                      context,
+                                      '/home',
+                                      (route) => false,
+                                    ); // No
                                   },
                                   child: const Text('No'),
                                 ),

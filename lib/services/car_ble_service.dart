@@ -95,10 +95,10 @@ class CarBleService {
     if (status == BleDeviceStatus.ready) {
       await _sendCommand("T");
 
-      // the car will disconnect itself after receiving T 
+      // the car will disconnect itself after receiving T
       status = BleDeviceStatus.disconnected;
       return true;
-    } 
+    }
     // Wait for automatic reconnection
     if (status == BleDeviceStatus.connecting) {
       try {
@@ -123,8 +123,8 @@ class CarBleService {
   /// Call this when driver vitals cross a critical threshold.
   /// Sends "E" (Emergency stop) to the car.
   Future<void> sendSevereCaseOccurred() async {
-    print("Sending severe case occured");
-    print("Ble is status: ${status}");
+    print("Sending severe case occured to car");
+    print("BLE Status $status");
     if (status != BleDeviceStatus.ready) {
       print("[CAR] Cannot send emergency — not connected");
       messagesController.add(

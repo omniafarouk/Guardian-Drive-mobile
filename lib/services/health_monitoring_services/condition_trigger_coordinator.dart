@@ -61,7 +61,7 @@ class BreachTriggerCoordinator {
     this.requiredConsecutiveCount = 3,
     bool testMode = false,
   }) : cooldown = testMode
-           ? Duration(seconds: 30)
+           ? Duration(minutes: 1)
            : Duration(minutes: 3), // timed out cooldown
        _baselineWithNoise = baseline;
 

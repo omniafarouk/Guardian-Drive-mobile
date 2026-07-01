@@ -3,6 +3,7 @@ import 'package:guardian_drive_mobile/models/alert_request.dart';
 import 'package:guardian_drive_mobile/models/alert_summary.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/services/alert_service.dart';
+import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
 import 'package:guardian_drive_mobile/services/trip_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
@@ -101,9 +102,18 @@ Future<void> showConfirmSOSDialog(
                 );
                 return;
               }
+              await TripService().endTripTracking();
+              await CarBleService.instance.sendSevereCaseOccurred();
               if (!context.mounted) return;
               traceLog('Show First Aid Guidance before dialog');
-              await showFirstAidGuidanceDialog(latestReading, context);
+              final ok = await showFirstAidGuidanceDialog(
+                latestReading,
+                context,
+              );
+              if (ok == null || ok == true) {
+                if (!context.mounted) return;
+                Navigator.pushReplacementNamed(context, '/home');
+              }
               traceLog('Show First Aid Guidance after dialog');
             } catch (e) {
               traceLog("error in sending SOS : ", e);

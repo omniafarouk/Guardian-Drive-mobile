@@ -1,4 +1,5 @@
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
+import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class HiveStore {
@@ -17,10 +18,15 @@ class HiveStore {
 
     _fiveMinBox = await Hive.openBox('five_min');
     _thirtyMinBox = await Hive.openBox('thirty_min');
+    _initialized = true;
   }
 
   static Future<void> _ensureInitialized() async {
-    if (!_initialized) await init();
+    if (!_initialized) {
+      traceLog("Hive Storage is intializaing");
+      await init();
+    }
+    print("Already Intialized");
   }
 
   static Future<void> saveFiveMin(VitalReadings r) async {

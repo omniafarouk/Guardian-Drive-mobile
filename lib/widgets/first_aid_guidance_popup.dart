@@ -4,17 +4,17 @@ import 'package:guardian_drive_mobile/models/first_aid_guidance.dart';
 import 'package:guardian_drive_mobile/services/first_aid_guidance_service.dart';
 import 'package:guardian_drive_mobile/utils/trace_log.dart';
 
-Future<void> showFirstAidGuidanceDialog(
+Future<bool?> showFirstAidGuidanceDialog(
   VitalReadings? reading,
   BuildContext context,
 ) async {
   // fetch
   final guidance = await getGuidanceString(reading);
 
-  if (!context.mounted) return;
+  if (!context.mounted) return false;
 
   // show result dialog
-  showDialog(
+  final result = await showDialog(
     context: context,
     useRootNavigator: true,
     builder: (BuildContext context) => AlertDialog(
@@ -52,7 +52,8 @@ Future<void> showFirstAidGuidanceDialog(
       ),
       actions: [
         ElevatedButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context, true),
+
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1A3A5C),
             shape: RoundedRectangleBorder(
@@ -86,7 +87,8 @@ Future<String> getGuidanceString(VitalReadings? readings) async {
     traceLog('guidance returned', guidances);
 
     if (guidances.isEmpty) {
-      return 'No specific guidance available. Pull over and rest.';
+      traceLog("loading guidance returned empty");
+      return 'Pull over and rest.';
     }
 
     const severityOrder = {
@@ -105,7 +107,7 @@ Future<String> getGuidanceString(VitalReadings? readings) async {
     return guidances.first.severityAction;
   } catch (e) {
     traceLog('guidance error', e);
-    return 'Unable to load guidance. Pull over safely and call emergency services.';
+    return 'Pull over safely and call emergency services.';
   }
 }
 // Future<String> getGuidanceString(VitalReadings? readings) async {

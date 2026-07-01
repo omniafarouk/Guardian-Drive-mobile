@@ -68,7 +68,8 @@ class BandBleService {
 
   // ── CSV config ─────────────────────────────────────────────────────────────
   String? _csvSubject = 'S01';
-  String _csvScenario = 'fatigue'; // 'normal', 'fatigue', or 'all'
+  // String _csvScenario = 'panic_attack'; // 1. change based on file
+  String _csvScenario = 'all';
   List<_CsvRow> _csvRows = [];
   int _csvCursor = 0;
   bool _csvLoaded = false;
@@ -110,7 +111,9 @@ class BandBleService {
   Future<void> _loadCsvIfNeeded() async {
     print("Loading csv ..");
     if (_csvLoaded) return;
-    final raw = await rootBundle.loadString('assets/fatigue.csv');
+    final raw = await rootBundle.loadString(
+      'assets/panic_attack.csv',
+    ); // 2. change when file changes
     final lines = const LineSplitter().convert(raw);
     if (lines.isEmpty) return;
 
@@ -129,13 +132,16 @@ class BandBleService {
       if (cols.length <= iLabel) continue;
       final rowSubject = cols[iSubject].trim();
       final rowLabel = cols[iLabel].trim();
-      if (_csvSubject != null && rowSubject != _csvSubject) continue;
-      if (_csvScenario != 'all' && rowLabel != _csvScenario) continue;
+      // if (_csvSubject != null && rowSubject != _csvSubject) continue;
+      // if (_csvScenario != 'all' && rowLabel != _csvScenario) continue;
       _csvRows.add(
         _CsvRow(
           bpm: double.tryParse(cols[iBpm].trim()) ?? 0,
           spo2: double.tryParse(cols[iSpo2].trim()) ?? 0,
           temp: double.tryParse(cols[iTemp].trim()) ?? 0,
+          // CHANGED: store remaining columns too
+          label: cols[iLabel].trim(),
+          subjectId: cols[iSubject].trim(),
         ),
       );
     }
@@ -146,6 +152,9 @@ class BandBleService {
   _CsvRow? _getNextCsvRow() {
     if (_csvRows.isEmpty) return null;
     final row = _csvRows[_csvCursor % _csvRows.length];
+    traceLog(
+      'CSV ROW: Label: ${row.label}, subject: ${row.subjectId}, Bpm: ${row.bpm}, temp: ${row.temp}, spo2:${row.spo2}',
+    );
     _csvCursor++;
     return row;
   }
@@ -493,9 +502,19 @@ class BandBleService {
   }
 }
 
+// CHANGED: added all CSV columns
 class _CsvRow {
   final double bpm;
   final double spo2;
   final double temp;
-  const _CsvRow({required this.bpm, required this.spo2, required this.temp});
+  final String label;
+  final String subjectId;
+
+  const _CsvRow({
+    required this.bpm,
+    required this.spo2,
+    required this.temp,
+    required this.label,
+    required this.subjectId,
+  });
 }
