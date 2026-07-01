@@ -412,6 +412,7 @@ class _DashboardState extends State<Dashboard> {
                               ),
                               onPressed: () {
                                 BandBleService.instance.scanAndConnect();
+                                // BandBleService.instance.startTestMode();
                               },
                               style: ElevatedButton.styleFrom(
                                 padding: EdgeInsets.symmetric(
