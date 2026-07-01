@@ -15,6 +15,7 @@ import 'package:guardian_drive_mobile/utils/trace_log.dart';
 import 'package:guardian_drive_mobile/widgets/custom_app_bar.dart';
 import 'package:guardian_drive_mobile/widgets/custom_card.dart';
 import 'package:guardian_drive_mobile/widgets/future_table_row.dart';
+import 'package:guardian_drive_mobile/widgets/side_bar_drawer.dart';
 import 'package:guardian_drive_mobile/widgets/sos_dialog_popup.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
@@ -270,6 +271,7 @@ class _OngoingTripState extends State<OngoingTrip> {
     }
     return Scaffold(
       appBar: CustomAppBar(title: "Ongoing Trip"),
+      drawer: const SideBarDrawer(),
       floatingActionButton: ValueListenableBuilder<bool>(
         valueListenable: TripService.instance.tripIsActiveNotifier,
         builder: (context, tripIsActive, child) {
@@ -382,7 +384,7 @@ class _OngoingTripState extends State<OngoingTrip> {
                                         : '${remainingDistance!.toStringAsFixed(2)} m',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 10,
+                                      fontSize: 12,
                                     ),
                                   ),
                           ],
@@ -395,7 +397,7 @@ class _OngoingTripState extends State<OngoingTrip> {
                           columnWidths: const {
                             0: IntrinsicColumnWidth(), // icon column (tight)
                             1: FixedColumnWidth(20),
-                            2: IntrinsicColumnWidth(), // text column (tight)
+                            2: FixedColumnWidth(120), // text column (tight)
                           },
                           children: [
                             buildRowFuture(
