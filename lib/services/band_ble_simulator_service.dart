@@ -77,6 +77,15 @@ class BandBleService {
   // CHANGED: single timer that owns all vitals broadcasting
   Timer? _csvTimer;
 
+  Future<void> startTestMode() async {
+    print("[TEST MODE] Starting CSV playback without BLE");
+    _precheckPassed = true;
+    _readyForReadings = true;
+    status = BleDeviceStatus.ready;
+    await _loadCsvIfNeeded();
+    _startCsvPlayback();
+  }
+
   // CHANGED: _startCsvPlayback is the single place that reads CSV rows
   // and broadcasts to telemetryController + updates bpm/spO2/temp notifiers.
   // battNotifier is NOT touched here — it comes from the real band only.
