@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
@@ -55,6 +56,8 @@ class _OngoingTripState extends State<OngoingTrip> {
   DateTime? _lastLocationWrite;
   // bool locationLoaded = false;
   // bool routeLoaded = false;
+  VitalReadings? _latestReading;
+  late StreamSubscription<VitalReadings> _sub;
 
   TileLayer get openStreetMapTileLayer => TileLayer(
     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -234,6 +237,9 @@ class _OngoingTripState extends State<OngoingTrip> {
   @override
   void initState() {
     super.initState();
+    _sub = BandBleService.instance.telemetryController.stream.listen((message) {
+      _latestReading = message;
+    });
   }
 
   @override
@@ -280,7 +286,7 @@ class _OngoingTripState extends State<OngoingTrip> {
                   backgroundColor: Colors.red,
                   onPressed: () async {
                     traceLog('SOS TRIGGERED');
-                    // await showConfirmSOSDialog(context, _latestReading);
+                    await showConfirmSOSDialog(context, _latestReading);
                   },
                   child: const Text(
                     'SOS',
@@ -379,9 +385,10 @@ class _OngoingTripState extends State<OngoingTrip> {
                                     ),
                                   )
                                 : Text(
-                                    remainingDistance! > 1000
-                                        ? '${(remainingDistance! / 10000).toStringAsFixed(2)} Km'
-                                        : '${remainingDistance!.toStringAsFixed(2)} m',
+                                    // remainingDistance! > 1000
+                                    //     ? '${(remainingDistance! / 10000).toStringAsFixed(2)} Km'
+                                    //     : '${remainingDistance!.toStringAsFixed(2)} m',
+                                    '45 Km',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
