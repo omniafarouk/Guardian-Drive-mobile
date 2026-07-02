@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
-import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
@@ -59,8 +58,6 @@ class _OngoingTripState extends State<OngoingTrip> {
   late StreamSubscription<VitalReadings> _sub;
   // bool locationLoaded = false;
   // bool routeLoaded = false;
-  VitalReadings? _latestReading;
-  late StreamSubscription<VitalReadings> _sub;
 
   TileLayer get openStreetMapTileLayer => TileLayer(
     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
