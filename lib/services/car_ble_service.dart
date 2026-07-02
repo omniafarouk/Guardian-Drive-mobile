@@ -28,7 +28,7 @@ class CarBleService {
   StreamSubscription?
   _connectionSubscription; // Represents the connection process
   StreamSubscription? _notifySubscription; // Listens for notifications
-
+  final ValueNotifier<bool> carCrashDetected = ValueNotifier(false); // to
   // bool isConnected = false;
   // final ValueNotifier<bool> connectionNotifier = ValueNotifier(false);
   // bool get isConnected => connectionNotifier.value;
@@ -239,7 +239,7 @@ class CarBleService {
       (data) {
         final message = utf8.decode(data).trim();
         print("[CAR] Received: $message");
-
+        carCrashDetected.value = false;
         switch (message) {
           case "P":
             print("Car Hardware precheck passed, car can move now");
@@ -258,7 +258,8 @@ class CarBleService {
           case "C":
             // Car detected a crash via its own sensors
             print("[CAR] CRASH DETECTED");
-            messagesController.add("Car Crashed!!"); 
+            carCrashDetected.value = true;
+            // messagesController.add("Car Crashed!!");
             // TRIGGER SOS, OR TELL THE FLEET MANAGER?
             break;
 

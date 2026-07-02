@@ -20,7 +20,6 @@ import 'dart:io';
 // import 'package:guardian_drive_mobile/services/band_ble_service.dart';
 import 'package:guardian_drive_mobile/services/band_ble_simulator_service.dart';
 
-
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MyHttpOverrides extends HttpOverrides {
@@ -33,7 +32,7 @@ class MyHttpOverrides extends HttpOverrides {
 }
 
 void main() async {
-   HttpOverrides.global = MyHttpOverrides();
+  HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   BandBleService.instance.messagesController.stream.listen((message) {
     print("BAND GLOBAL LISTENER GOT: $message");
@@ -61,6 +60,7 @@ class _MyAppState extends State<MyApp> {
   final AppLinks appLinks = AppLinks();
   StreamSubscription? _sub;
   bool _bandAdjustDialogVisible = false;
+  bool _crashDialogVisible = false;
 
   @override
   void initState() {
@@ -100,6 +100,50 @@ class _MyAppState extends State<MyApp> {
           ).then((_) => _bandAdjustDialogVisible = false);
         } else if (!needs && _bandAdjustDialogVisible) {
           _bandAdjustDialogVisible = false;
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      });
+      CarBleService.instance.carCrashDetected.addListener(() {
+        final crashed = CarBleService.instance.carCrashDetected.value;
+        final context = navigatorKey.currentContext;
+        if (context == null) return;
+
+        if (crashed && !_crashDialogVisible) {
+          _crashDialogVisible = true;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.car_crash, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Crash Detected'),
+                ],
+              ),
+              content: Text(
+                'A possible collision has been detected.'
+                // 'If you do not respond, your fleet manager will be alerted '
+                // 'with your current location and vitals.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('I\'m OK'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('Trigger SOS'),
+                ),
+              ],
+            ),
+          ).then((_) => _crashDialogVisible = false);
+        } else if (!crashed && _crashDialogVisible) {
+          _crashDialogVisible = false;
           Navigator.of(context, rootNavigator: true).pop();
         }
       });
