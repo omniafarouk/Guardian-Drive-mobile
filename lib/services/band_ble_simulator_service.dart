@@ -112,7 +112,7 @@ class BandBleService {
     print("Loading csv ..");
     if (_csvLoaded) return;
     final raw = await rootBundle.loadString(
-      'assets/panic_attack.csv',
+      'assets/fatigue_2.csv',
     ); // 2. change when file changes
     final lines = const LineSplitter().convert(raw);
     if (lines.isEmpty) return;

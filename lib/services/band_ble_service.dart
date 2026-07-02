@@ -372,12 +372,6 @@ class BandBleService {
               timestamp: DateTime.now(),
             ),
           );
-          // BandService.sendVitals(
-          //   heartRate: bpm.toDouble(),
-          //   spo2: spo2.toDouble(),
-          //   temp: temp.toDouble(),
-          // );
-
           print("BATT: ${data['BATT']}");
           print("SPO2: ${data['spO2']}");
           print("BPM: ${data['bpm']}");

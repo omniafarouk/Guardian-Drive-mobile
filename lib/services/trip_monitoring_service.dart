@@ -18,15 +18,15 @@ class TripMonitoringService {
 
     _isRunning = true;
 
-    _subscription = BandBleService.instance.telemetryController.stream.listen(
-      (reading) async {
-        await BandService.sendVitals(
-          heartRate: reading.heartRate,
-          spo2: reading.spo2,
-          temp: reading.temp,
-        );
-      },
-    );
+    _subscription = BandBleService.instance.telemetryController.stream.listen((
+      reading,
+    ) async {
+      await BandService.sendVitals(
+        heartRate: double.parse(reading.heartRate.toStringAsFixed(2)),
+        spo2: double.parse(reading.spo2.toStringAsFixed(2)),
+        temp: double.parse(reading.temp.toStringAsFixed(2)),
+      );
+    });
   }
 
   void stopMonitoring() {

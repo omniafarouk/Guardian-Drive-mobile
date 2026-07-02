@@ -202,6 +202,7 @@ class _HealthAlertDialogState extends State<_HealthAlertDialog> {
             style: TextStyle(color: Colors.white54),
           ),
         ),
+        
         ElevatedButton(
           onPressed: () => _dismiss(stopTrip: true),
           style: ElevatedButton.styleFrom(

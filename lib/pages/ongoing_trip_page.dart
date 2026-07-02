@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:guardian_drive_mobile/models/continuous_vital_readings.dart';
 import 'package:guardian_drive_mobile/models/trip.dart';
 import 'package:guardian_drive_mobile/services/car_ble_service.dart';
 import 'package:guardian_drive_mobile/services/location_service.dart';
@@ -53,6 +54,8 @@ class _OngoingTripState extends State<OngoingTrip> {
 
   LatLng? _lastSavedLocation;
   DateTime? _lastLocationWrite;
+  VitalReadings? _latestReading;
+  late StreamSubscription<VitalReadings> _sub;
   // bool locationLoaded = false;
   // bool routeLoaded = false;
 
@@ -234,6 +237,9 @@ class _OngoingTripState extends State<OngoingTrip> {
   @override
   void initState() {
     super.initState();
+    _sub = BandBleService.instance.telemetryController.stream.listen((reading) {
+      _latestReading = reading;
+    });
   }
 
   @override
@@ -280,7 +286,7 @@ class _OngoingTripState extends State<OngoingTrip> {
                   backgroundColor: Colors.red,
                   onPressed: () async {
                     traceLog('SOS TRIGGERED');
-                    // await showConfirmSOSDialog(context, _latestReading);
+                    await showConfirmSOSDialog(context, _latestReading);
                   },
                   child: const Text(
                     'SOS',

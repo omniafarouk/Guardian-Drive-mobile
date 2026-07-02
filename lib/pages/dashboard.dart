@@ -629,7 +629,8 @@ class _DashboardState extends State<Dashboard> {
                   builder: (context, status, child) {
                     final carConnected =
                         status == BleDeviceStatus.connected ||
-                        status == BleDeviceStatus.ready;
+                        status == BleDeviceStatus.ready ||
+                        status == BleDeviceStatus.precheckPassed;
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

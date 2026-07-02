@@ -26,141 +26,153 @@ Future<void> showConfirmSOSDialog(
         ),
       ),
       actions: <Widget>[
-        TextButton(
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.green,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          onPressed: () =>
-              Navigator.of(dialogContext, rootNavigator: true).pop(),
-          child: Text(
-            'NO',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade200,
-            ),
-          ),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          onPressed: () async {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-
-            bool loadingShowing = true;
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              useRootNavigator: true,
-              builder: (_) => AlertDialog(
-                backgroundColor: const Color(0xFF0D1B2A),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.green,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                content: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 16),
-                    Text(
-                      "Sending SOS Alert...",
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
                 ),
               ),
-            ).then((_) => loadingShowing = false);
+              onPressed: () =>
+                  Navigator.of(dialogContext, rootNavigator: true).pop(),
+              child: Text(
+                'NO',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade200,
+                ),
+              ),
+            ),
+            SizedBox(width: 20,),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+              onPressed: () async {
+                Navigator.of(dialogContext, rootNavigator: true).pop();
 
-            void closeLoading() {
-              if (loadingShowing && context.mounted) {
-                Navigator.of(context, rootNavigator: true).pop();
-                loadingShowing = false;
-              }
-            }
-
-            try {
-              final success = await triggerSOS(context, latestReading);
-              traceLog("success", success);
-              closeLoading();
-
-              if (success == false || success == null) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Triggering SOS Failed'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-              await TripService().endTripTracking();
-              await CarBleService.instance.sendSevereCaseOccurred();
-              if (!context.mounted) return;
-              traceLog('Show First Aid Guidance before dialog');
-              final ok = await showFirstAidGuidanceDialog(
-                latestReading,
-                context,
-              );
-              if (ok == null || ok == true) {
-                if (!context.mounted) return;
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-              traceLog('Show First Aid Guidance after dialog');
-            } catch (e) {
-              traceLog("error in sending SOS : ", e);
-              closeLoading();
-              if (context.mounted) {
+                bool loadingShowing = true;
                 showDialog(
                   context: context,
+                  barrierDismissible: false,
                   useRootNavigator: true,
-                  builder: (ctx) => AlertDialog(
+                  builder: (_) => AlertDialog(
                     backgroundColor: const Color(0xFF0D1B2A),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    title: const Text(
-                      "Failed to send SOS",
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    content: Text(
-                      e.toString(),
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(ctx, rootNavigator: true).pop(),
-                        child: const Text(
-                          "OK",
-                          style: TextStyle(color: Colors.white54),
+                    content: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(color: Colors.white),
+                        SizedBox(height: 16),
+                        Text(
+                          "Sending SOS Alert...",
+                          style: TextStyle(color: Colors.white70),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                );
-              }
-            }
-          },
-          child: Text(
-            'YES',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade200,
+                ).then((_) => loadingShowing = false);
+
+                void closeLoading() {
+                  if (loadingShowing && context.mounted) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    loadingShowing = false;
+                  }
+                }
+
+                try {
+                  final success = await triggerSOS(context, latestReading);
+                  traceLog("success", success);
+                  closeLoading();
+
+                  if (success == false || success == null) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Triggering SOS Failed'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+                  await TripService().endTripTracking();
+                  await CarBleService.instance.sendSevereCaseOccurred();
+                  if (!context.mounted) return;
+                  traceLog('Show First Aid Guidance before dialog');
+                  final ok = await showFirstAidGuidanceDialog(
+                    latestReading,
+                    context,
+                  );
+                  if (ok == null || ok == true) {
+                    if (!context.mounted) return;
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }
+                  traceLog('Show First Aid Guidance after dialog');
+                } catch (e) {
+                  traceLog("error in sending SOS : ", e);
+                  closeLoading();
+                  if (context.mounted) {
+                    showDialog(
+                      context: context,
+                      useRootNavigator: true,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: const Color(0xFF0D1B2A),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: const Text(
+                          "Failed to send SOS",
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        content: Text(
+                          e.toString(),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.of(ctx, rootNavigator: true).pop(),
+                            child: const Text(
+                              "OK",
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text(
+                'YES',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade200,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ],
     ),

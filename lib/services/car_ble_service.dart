@@ -258,7 +258,7 @@ class CarBleService {
           case "C":
             // Car detected a crash via its own sensors
             print("[CAR] CRASH DETECTED");
-            messagesController.add("Car Crashed"); 
+            messagesController.add("Car Crashed!!"); 
             // TRIGGER SOS, OR TELL THE FLEET MANAGER?
             break;
 

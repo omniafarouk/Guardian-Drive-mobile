@@ -93,6 +93,7 @@ class _HealthWarningDialogState extends State<_HealthWarningDialog> {
             ),
           ),
         ),
+        SizedBox(height: 5,),
         ElevatedButton(
           onPressed: () async {
             Navigator.pop(context);
